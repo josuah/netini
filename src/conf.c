@@ -240,6 +240,22 @@ conf_next_section(struct conf *conf, size_t *i, char const *name)
 	return NULL;
 }
 
+int
+conf_next_key_value(struct conf_section *section, size_t *i,
+	char **key, char **value)
+{
+	struct map_entry *entry;
+
+	if (*i >= map_length(&section->variables))
+		return 0;
+
+	entry = map_i(&section->variables, *i);
+	*key = entry->key;
+	*value = entry->value;
+	*i += 1;
+	return 1;
+}
+
 char const *
 conf_get_section_variable(struct conf_section *section, char *key)
 {

@@ -42,6 +42,7 @@ int conf_getline(char **line, size_t *sz, FILE *fp, size_t *ln);
 int conf_parse_stream(struct conf *conf, FILE *fp, size_t *ln, struct mem_pool *pool);
 int conf_parse_file(struct conf *conf, char const *path, size_t *ln, struct mem_pool *pool);
 struct conf_section * conf_next_section(struct conf *conf, size_t *i, char const *name);
+int conf_next_key_value(struct conf_section *section, size_t *i, char **key, char **value);
 char const * conf_get_section_variable(struct conf_section *section, char *key);
 char const * conf_get_variable(struct conf *conf, char *s_name, char *key);
 void conf_dump(struct conf *conf, FILE *fp);

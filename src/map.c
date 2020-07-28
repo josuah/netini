@@ -39,6 +39,12 @@ map_get(struct map *map, char *key)
 	return entry->value;
 }
 
+struct map_entry *
+map_i(struct map *map, size_t i)
+{
+	return arr_i(&map->array, i);
+}
+
 int
 map_set(struct map *map, char *key, void *value)
 {
@@ -49,7 +55,7 @@ map_set(struct map *map, char *key, void *value)
 	assert(key != NULL);
 
 	for (i = 0; i < len; i++) {
-		struct map_entry *this = arr_i(&map->array, i);;
+		struct map_entry *this = map_i(map, i);;
 		int cmp = strcmp(key, this->key);
 
 		if (cmp == 0) {
@@ -70,7 +76,7 @@ map_delete(struct map *map, char *key)
 	assert(map->init == 1);
 
 	for (i = 0; i < len; i++) {
-		struct map_entry *entry = arr_i(&map->array, i);
+		struct map_entry *entry = map_i(map, i);
 		int cmp = strcmp(key, entry->key);
 
 		if (cmp == 0)
