@@ -93,7 +93,6 @@ debug(char const *fmt, ...)
 
 	if (debug_is_on < 0)
 		debug_is_on = (getenv("DEBUG") != NULL);
-
 	if (debug_is_on) {
 		va_start(va, fmt);
 		log_vprintf("debug", fmt, va);
