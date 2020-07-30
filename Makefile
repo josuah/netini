@@ -7,7 +7,7 @@ SRC = src/mem.c src/ip.c src/log.c src/arr.c src/compat/strchomp.c \
 HDR = src/ip.h src/conf.h src/netgraph.h src/test.h src/compat.h src/mem.h \
   src/arr.h src/log.h
 
-BIN = netgraph-routing
+BIN = netgraph-dot
 
 OBJ = ${SRC:.c=.o}
 
