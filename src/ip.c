@@ -8,28 +8,52 @@
 #include <string.h>
 
 char const *
-ip_parse_addr_v4(char const *s, uint8_t *ip)
+ip_parse_mac(char const *s, uint8_t mac[6])
+{
+	size_t n = 6;
+
+	while (isxdigit(s[0]) && isxdigit(s[1])) {
+		uint8_t c0 = tolower(*s++);
+		uint8_t c1 = tolower(*s++);
+
+		c0 = (c0 <= '9') ? c0 - '0' : c0 - 'a';
+		c1 = (c1 <= '9') ? c1 - '0' : c1 - 'a';
+
+		*mac++ = (c0 << 4) | c1;
+
+		if (--n == 0)
+			break;
+
+		if (*s != '-' && *s != ':')
+			return NULL;
+		s++;
+	}
+	return s;
+}
+
+char const *
+ip_parse_addr_v4(char const *s, uint8_t ip[4])
 {
 	unsigned long ul;
 
 	if (!isdigit(*s) || (ul = strtoul(s, (char **)&s, 10)) > 0xff)
-		return (NULL);
+		return NULL;
 	ip[0] = ul;
 
 	for (int i = 1; i < 4; i++) {
 		if (*s++ != '.')
-			return (NULL);
+			return NULL;
 
 		if (!isdigit(*s) || (ul = strtoul(s, (char **)&s, 10)) > 0xff)
-			return (NULL);
+			return NULL;
 		ip[i] = ul;
 	}
 
-	return (s);
+	return s;
 }
 
 char const *
-ip_parse_addr_v6(char const *s, uint8_t *ip)
+ip_parse_addr_v6(char const *s, uint8_t ip[16])
 {
 	char const *cp;
 	unsigned long ul;
@@ -50,7 +74,8 @@ ip_parse_addr_v6(char const *s, uint8_t *ip)
 		}
 
 		/* embeddd IPv4 */
-		if ((cp = ip_parse_addr_v4(s, ip + i)) != NULL) {
+		cp = ip_parse_addr_v4(s, ip + i);
+		if (cp != NULL) {
 			i += 4;
 			s = cp;
 			break;
@@ -67,13 +92,13 @@ ip_parse_addr_v6(char const *s, uint8_t *ip)
 	}
 
 	if ((zfound && i == 16) || (!zfound && i != 16))
-		return (NULL);
+		return NULL;
 
 	/* shift everything after "::" to the end */
 	memmove(ip + 16 - (i - zpos), ip + zpos, i - zpos);
 	memset(ip + zpos, 0, 16 - i);
 
-	return (s);
+	return s;
 }
 
 char const *
@@ -81,9 +106,12 @@ ip_parse_addr(char const *s, uint8_t *ip)
 {
 	char const *cp;
 
-	if ((cp = ip_parse_addr_v6(s, ip)) != NULL)
+	cp = ip_parse_addr_v6(s, ip);
+	if (cp != NULL)
 		return cp;
-	if ((cp = ip_parse_addr_v4(s, ip + 12)) != NULL) {
+
+	cp = ip_parse_addr_v4(s, ip + 12);
+	if (cp != NULL) {
 		memset(ip, 0x00, 10);
 		memset(ip + 10, 0xff, 2);
 		return cp;
@@ -97,16 +125,16 @@ ip_parse_mask(char const *s, int version, int *mask)
 	unsigned long ul;
 
 	if (*s++ != '/')
-		return (NULL);
+		return NULL;
 
 	if (!isdigit(*s) || (ul = strtoul(s, (char**)&s, 10)) > 128)
-		return (NULL);
+		return NULL;
 	*mask = ul;
 
 	if (version == 4)
 		if ((*mask += 96) > 128)
-			return (NULL);
-	return (s);
+			return NULL;
+	return s;
 }
 
 char const *
@@ -125,10 +153,10 @@ ip_parse_in_addr_arpa(char const *s, uint8_t *ip, int *prefixlen)
 		stack[dots] = ul;
 
 		if (*s++ != '.')
-			return (NULL);
+			return NULL;
 	}
 	if (strcmp(s, "in-addr.arpa") != 0)
-		return (NULL);
+		return NULL;
 
 	*prefixlen = dots;
 
@@ -136,7 +164,7 @@ ip_parse_in_addr_arpa(char const *s, uint8_t *ip, int *prefixlen)
 	while (dots-- > 0)
 		*ip++ = stack[dots];
 
-	return (s);
+	return s;
 }
 
 char const *
@@ -154,10 +182,10 @@ ip_parse_ip6_arpa(char const *s, uint8_t *ip, int *prefixlen)
 			break;
 
 		if (*s++ != '.')
-			return (NULL);
+			return NULL;
 	}
 	if (strcmp(s, "ip6.arpa") != 0)
-		return (NULL);
+		return NULL;
 
 	*prefixlen = dots / 2;
 
@@ -165,7 +193,7 @@ ip_parse_ip6_arpa(char const *s, uint8_t *ip, int *prefixlen)
 	while ((dots -= 2) > 0)
 		*ip++ = (stack[dots / 2]) + (stack[dots / 2 + 1] >> 4);
 
-	return (s);
+	return s;
 }
 
 int
@@ -183,9 +211,9 @@ ip_match(uint8_t *ip1, uint8_t *ip2, int prefixlen)
 	int n = prefixlen / 8;
 
 	if (memcmp(ip1, ip2, n) != 0)
-		return (0);
+		return 0;
 	mask = 0xff ^ (0xff >> prefixlen % 8);
-	return ((ip1[n - 1] & mask) == (ip2[n - 1] & mask));
+	return (ip1[n - 1] & mask) == (ip2[n - 1] & mask);
 }
 
 void

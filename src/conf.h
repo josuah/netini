@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-#include "arr.h"
+#include "array.h"
 #include "mem.h"
 
 enum conf_errno {
@@ -22,13 +22,13 @@ struct conf {
 	int init;
 	struct mem_pool *pool;
 	struct conf_section *current;
-	struct arr sections; /* struct conf_section */
+	struct array sections; /* struct conf_section */
 };
 
 struct conf_section {
 	int init;
 	char name[64];
-	struct arr variables; /* struct conf_variable */
+	struct array variables; /* struct conf_variable */
 };
 
 struct conf_variable {
@@ -43,9 +43,10 @@ int conf_parse_section(struct conf *conf, char *line);
 int conf_parse_stream(struct conf *conf, FILE *fp, size_t *ln, struct mem_pool *pool);
 int conf_parse_file(struct conf *conf, char const *path, size_t *ln, struct mem_pool *pool);
 struct conf_section * conf_next_section(struct conf *conf, size_t *i, char const *name);
-struct conf_variable * conf_next_variable(struct conf_section *section, size_t *i, char *key);
-char * conf_next_value(struct conf_section *section, size_t *i, char *key);
-char const * conf_get_variable(struct conf *conf, char *s_name, char *v_name);
+struct conf_variable * conf_next_variable(struct conf_section *section, size_t *i, char const *key);
+char * conf_next_value(struct conf_section *section, size_t *i, char const *key);
+char const * conf_get_variable(struct conf *conf, char const *s_name, char const *v_name);
 void conf_dump(struct conf *conf, FILE *fp);
+struct conf_section * conf_next_matching_section(struct conf *conf, size_t *i1, size_t *i2, char const *sect, char const *key, char const *value);
 
 #endif

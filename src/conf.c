@@ -7,7 +7,7 @@
 #include <string.h>
 #include <strings.h>
 
-#include "arr.h"
+#include "array.h"
 #include "compat.h"
 #include "mem.h"
 
@@ -61,7 +61,7 @@ conf_init(struct conf *conf, struct mem_pool *pool)
 {
 	assert(conf->init == 0);
 
-	if (arr_init(&conf->sections, sizeof(struct conf_section), pool) < 0)
+	if (array_init(&conf->sections, sizeof(struct conf_section), pool) < 0)
 		return -CONF_ERR_SYSTEM;
 
 	conf->pool = pool;
@@ -100,7 +100,7 @@ conf_parse_variable(struct conf *conf, char *line)
 	variable.value = eq + 1;
 	variable.value += strspn(variable.value, " \t");
 
-	if (arr_append(&conf->current->variables, &variable) < 0)
+	if (array_append(&conf->current->variables, &variable) < 0)
 		return -CONF_ERR_SYSTEM;
 
 	return 0;
@@ -118,7 +118,7 @@ conf_init_section(struct conf_section *section, char *name,
 	if (strlcpy(section->name, name, sz) >= sz)
 		return -CONF_ERR_SECTION_NAME_TOO_LONG;
 
-	if (arr_init(&section->variables, sizeof section->variables, pool) < 0)
+	if (array_init(&section->variables, sizeof section->variables, pool) < 0)
 		return -CONF_ERR_SYSTEM;
 
 	section->init = 1;
@@ -148,10 +148,10 @@ conf_parse_section(struct conf *conf, char *line)
 	if (err < 0)
 		return err;
 
-	if (arr_append(&conf->sections, &section) < 0)
+	if (array_append(&conf->sections, &section) < 0)
 		return -CONF_ERR_SYSTEM;
 
-	conf->current = arr_i(&conf->sections, arr_length(&conf->sections) - 1);
+	conf->current = array_i(&conf->sections, array_length(&conf->sections) - 1);
 	return 0;
 }
 
@@ -233,10 +233,10 @@ conf_next_section(struct conf *conf, size_t *i, char const *name)
 	struct conf_section *section;
 
 	assert(conf->init == 1);
-	assert(*i <= arr_length(&conf->sections));
+	assert(*i <= array_length(&conf->sections));
 
-	while (*i < arr_length(&conf->sections)) {
-		section = arr_i(&conf->sections, (*i)++);
+	while (*i < array_length(&conf->sections)) {
+		section = array_i(&conf->sections, (*i)++);
 
 		if (name == NULL || strcasecmp(section->name, name) == 0)
 			return section;
@@ -245,15 +245,15 @@ conf_next_section(struct conf *conf, size_t *i, char const *name)
 }
 
 struct conf_variable *
-conf_next_variable(struct conf_section *section, size_t *i, char *key)
+conf_next_variable(struct conf_section *section, size_t *i, char const *key)
 {
 	struct conf_variable *variable;
 
 	assert(section->init == 1);
-	assert(*i <= arr_length(&section->variables));
+	assert(*i <= array_length(&section->variables));
 
-	while (*i < arr_length(&section->variables)) {
-		variable = arr_i(&section->variables, (*i)++);
+	while (*i < array_length(&section->variables)) {
+		variable = array_i(&section->variables, (*i)++);
 
 		if (key == NULL || strcasecmp(variable->key, key) == 0)
 			return variable;
@@ -262,7 +262,7 @@ conf_next_variable(struct conf_section *section, size_t *i, char *key)
 }
 
 char *
-conf_next_value(struct conf_section *section, size_t *i, char *key)
+conf_next_value(struct conf_section *section, size_t *i, char const *key)
 {
 	struct conf_variable *variable = conf_next_variable(section, i, key);
 
@@ -272,7 +272,7 @@ conf_next_value(struct conf_section *section, size_t *i, char *key)
 }
 
 char const *
-conf_get_variable(struct conf *conf, char *s_name, char *v_name)
+conf_get_variable(struct conf *conf, char const *s_name, char const *v_name)
 {
 	struct conf_section *section = NULL;
 	size_t i;
@@ -292,15 +292,36 @@ conf_dump(struct conf *conf, FILE *fp)
 	struct conf_section *section;
 
 	for (size_t i = 0; (section = conf_next_section(conf, &i, NULL));) {
-		struct arr *arr = &section->variables;
+		struct array *array = &section->variables;
 
 		fprintf(fp, "%s[%s]\n", (i > 0) ? "\n" : "", section->name);
 
-		for (size_t j = 0; j < arr_length(arr); j++) {
-			struct conf_variable *var = arr_i(arr, j);
+		for (size_t j = 0; j < array_length(array); j++) {
+			struct conf_variable *var = array_i(array, j);
 
 			fprintf(fp, "%s = %s\n", var->key, var->value);
 		}
 	}
 	fprintf(fp, "\n");
+}
+
+struct conf_section *
+conf_next_matching_section(struct conf *conf, size_t *i1, size_t *i2,
+	char const *sect, char const *key, char const *value)
+{
+	assert(key != NULL);
+	assert(value != NULL);
+
+	while (*i1 < array_length(&conf->sections)) {
+		struct conf_section *section = array_i(&conf->sections, *i1);
+		char const *var;
+
+		while ((var = conf_next_value(section, i2, key)))
+			if (strcmp(var, value) == 0)
+				return section;
+		*i2 = 0;
+		if (conf_next_section(conf, i1, sect) == NULL)
+			break;
+	}
+	return NULL;
 }

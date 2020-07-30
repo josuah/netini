@@ -9,8 +9,11 @@
 #include "mem.h"
 #include "netgraph.h"
 
-static char *style_net = "shape=ellipse";
-static char *style_host = "shape=rectangle";
+static char const *style_node_net = "shape=ellipse";
+static char const *style_node_host = "shape=rectangle";
+static char const *style_edge_l1l2 = "color=blue";
+static char const *style_edge_l2l3 = "color=red";
+static char const *style_edge_ipsec = "style=dotted";
 
 void
 draw_beg(void)
@@ -25,13 +28,13 @@ draw_end(void)
 }
 
 void
-draw_edge(char *left, char *right)
+draw_edge(char const *left, char const *right, char const *style)
 {
-	fprintf(stdout, "\t\"%s\" -- \"%s\";\n", left, right);
+	fprintf(stdout, "\t\"%s\" -- \"%s\" [%s];\n", left, right, style);
 }
 
 void
-draw_node(char *s, struct conf_section *section, char *style)
+draw_node(char *s, struct conf_section *section, char const *style)
 {
 	struct conf_variable *var;
 	size_t i;
@@ -51,16 +54,16 @@ int
 main(int argc, char **argv)
 {
 	struct mem_pool pool = {0};
-	struct arr hosts = {0}, nets = {0};
+	struct array hosts = {0}, nets = {0};
 	size_t i1, i2, i3;
 	int err;
 
 	arg0 = *argv++;
 	argc--;
 
-	if (arr_init(&hosts, sizeof (struct netgraph_host), &pool) < 0
-	 || arr_init(&nets, sizeof (struct netgraph_net), &pool) < 0)
-		die("msg=%s", "initializing arrays");
+	if (array_init(&hosts, sizeof (struct netgraph_host), &pool) < 0
+	 || array_init(&nets, sizeof (struct netgraph_net), &pool) < 0)
+		die("msg=%s", "initializing arrayays");
 
 	for (; *argv != NULL; argv++) {
 		size_t ln = 0;
@@ -73,29 +76,29 @@ main(int argc, char **argv)
 
 	draw_beg();
 
-	for (i1 = 0; i1 < arr_length(&nets); i1++) {
-		struct netgraph_net *net = arr_i(&nets, i1);
+	for (i1 = 0; i1 < array_length(&nets); i1++) {
+		struct netgraph_net *net = array_i(&nets, i1);
 
-		draw_node(net->name, net->section, style_net);
+		draw_node(net->name, net->section, style_node_net);
 	}
 
-	for (i1 = 0; i1 < arr_length(&hosts); i1++) {
-		struct netgraph_host *host = arr_i(&hosts, i1);
+	for (i1 = 0; i1 < array_length(&hosts); i1++) {
+		struct netgraph_host *host = array_i(&hosts, i1);
 
-		draw_node(host->name, host->section, style_host);
+		draw_node(host->name, host->section, style_node_host);
 	}
 
-	for (i1 = 0; i1 < arr_length(&nets); i1++) {
-		struct netgraph_net *net = arr_i(&nets, i1);
+	for (i1 = 0; i1 < array_length(&nets); i1++) {
+		struct netgraph_net *net = array_i(&nets, i1);
 
-		for (i2 = 0; i2 < arr_length(&hosts); i2++) {
-			struct netgraph_host *host = arr_i(&hosts, i2);
+		for (i2 = 0; i2 < array_length(&hosts); i2++) {
+			struct netgraph_host *host = array_i(&hosts, i2);
 
-			for (i3 = 0; i3 < arr_length(&host->ips); i3++) {
-				uint8_t *ip = arr_i(&host->ips, i3);
+			for (i3 = 0; i3 < array_length(&host->ips); i3++) {
+				uint8_t *ip = array_i(&host->ips, i3);
 
 				if (ip_match(ip, net->ip, net->mask))
-					draw_edge(net->name, host->name);
+					draw_edge(net->name, host->name, style_edge_l2l3);
 			}
 		}
 	}

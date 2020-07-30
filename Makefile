@@ -1,11 +1,11 @@
 NAME = netgraph
 VERSION = 0.0
 
-SRC = src/mem.c src/ip.c src/log.c src/arr.c src/compat/strchomp.c \
+SRC = src/mem.c src/ip.c src/log.c src/array.c src/compat/strchomp.c \
   src/compat/strlcpy.c src/compat/strip.c src/conf.c src/netgraph.c
 
 HDR = src/ip.h src/conf.h src/netgraph.h src/test.h src/compat.h src/mem.h \
-  src/arr.h src/log.h
+  src/array.h src/log.h
 
 BIN = netgraph-dot
 
