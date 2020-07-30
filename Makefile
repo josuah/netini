@@ -1,11 +1,11 @@
 NAME = netgraph
 VERSION = 0.0
 
-SRC = src/mem.c src/ip.c src/log.c src/array.c src/compat/strchomp.c \
-  src/compat/strlcpy.c src/compat/strip.c src/conf.c src/netgraph.c
+SRC = src/mem.c src/ip.c src/log.c src/compat/strchomp.c src/compat/strlcpy.c \
+  src/compat/strip.c src/conf.c src/array.c src/mac.c src/netgraph.c
 
-HDR = src/ip.h src/conf.h src/netgraph.h src/test.h src/compat.h src/mem.h \
-  src/array.h src/log.h
+HDR = src/ip.h src/conf.h src/netgraph.h src/array.h src/test.h src/compat.h \
+  src/mem.h src/mac.h src/log.h
 
 BIN = netgraph-dot
 
@@ -28,7 +28,7 @@ all: ${BIN}
 .c.o:
 	${CC} -c ${CFLAGS} -o $@ $<
 
-${OBJ}: ${HDR}
+${OBJ} ${BIN:=.o}: Makefile ${HDR}
 ${BIN}: ${OBJ} ${BIN:=.o}
 	${CC} ${LDFLAGS} -o $@ $@.o ${OBJ} ${LIB}
 

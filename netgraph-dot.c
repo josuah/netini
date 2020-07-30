@@ -9,11 +9,10 @@
 #include "mem.h"
 #include "netgraph.h"
 
-static char const *style_node_net = "shape=ellipse";
+static char const *style_node_net = "color=red shape=ellipse";
 static char const *style_node_host = "shape=rectangle";
-static char const *style_edge_l1l2 = "color=blue";
+static char const *style_edge_l1l2 = "color=grey";
 static char const *style_edge_l2l3 = "color=red";
-static char const *style_edge_ipsec = "style=dotted";
 
 void
 draw_beg(void)
@@ -45,7 +44,9 @@ draw_node(char *s, struct conf_section *section, char const *style)
 	while ((var = conf_next_variable(section, &i, NULL))) {
 		if (strcmp(var->key, "name") == 0)
 			continue;
-		fprintf(stdout, "%s: %s\\n", var->key, var->value);
+		if (strcmp(var->key, "link") == 0)
+			continue;
+		fprintf(stdout, "%s %s\\n", var->key, var->value);
 	}
 	fprintf(stdout, "\"] }\n");
 }
@@ -88,6 +89,8 @@ main(int argc, char **argv)
 		draw_node(host->name, host->section, style_node_host);
 	}
 
+	/* layer 3 topology */
+
 	for (i1 = 0; i1 < array_length(&nets); i1++) {
 		struct netgraph_net *net = array_i(&nets, i1);
 
@@ -100,6 +103,21 @@ main(int argc, char **argv)
 				if (ip_match(ip, net->ip, net->mask))
 					draw_edge(net->name, host->name, style_edge_l2l3);
 			}
+		}
+	}
+
+	/* layer 2 topology */
+
+	for (i1 = 0; i1 < array_length(&hosts); i1++) {
+		struct netgraph_host *this = array_i(&hosts, i1);
+
+		for (i2 = 0; i2 < array_length(&this->links); i2++) {
+			struct netgraph_link *link = array_i(&this->links, i2);
+			struct netgraph_host *other;
+
+			i3 = 0;
+			while ((other = netgraph_next_linked(&hosts, link, &i3)))
+				draw_edge(this->name, other->name, style_edge_l1l2);
 		}
 	}
 

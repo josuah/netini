@@ -7,7 +7,6 @@
 #define IP_FMT_ADDR_LEN (128 + sizeof("ip6.arpa"))
 
 /** src/ip.c **/
-char const * ip_parse_mac(char const *s, uint8_t mac[6]);
 char const * ip_parse_addr_v4(char const *s, uint8_t ip[4]);
 char const * ip_parse_addr_v6(char const *s, uint8_t ip[16]);
 char const * ip_parse_addr(char const *s, uint8_t *ip);

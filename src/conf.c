@@ -17,14 +17,16 @@
  *	# comment and everything can have leading spaces/tabs
  *
  *	[section]
- *	  case_insensitive = unquoted value #<- included in the value
- *	  there_can_be_spaces_before_and_after = they will be trimmed
+ *	case_insensitive = unquoted value #<- included in the value
+ *	there_can_be_spaces_before_and_after = they will be trimmed
  *
- *	[object]
- *	  multiple_sections_with_same_name = allowed
+ *	[section]
+ *	multiple_sections_with_same_name = allowed
+ *	multiple_variables_with_same_name = allowed
+ *	multiple_variables_with_same_name = as well
  *
- *	[object]
- *	  # empty sections allowed
+ *	[section]
+ *	# empty sections allowed
  */
 
 char const *
@@ -287,41 +289,27 @@ conf_get_variable(struct conf *conf, char const *s_name, char const *v_name)
 }
 
 void
+conf_dump_section(struct conf_section *section, FILE *fp)
+{
+	struct array *array = &section->variables;
+
+	fprintf(fp, "[%s]\n", section->name);
+	for (size_t i = 0; i < array_length(array); i++) {
+		struct conf_variable *var = array_i(array, i);
+
+		fprintf(fp, "%s = %s\n", var->key, var->value);
+	}
+}
+
+void
 conf_dump(struct conf *conf, FILE *fp)
 {
 	struct conf_section *section;
 
 	for (size_t i = 0; (section = conf_next_section(conf, &i, NULL));) {
-		struct array *array = &section->variables;
+		if (i > 0)
+			fputc('\n', stdout);
 
-		fprintf(fp, "%s[%s]\n", (i > 0) ? "\n" : "", section->name);
-
-		for (size_t j = 0; j < array_length(array); j++) {
-			struct conf_variable *var = array_i(array, j);
-
-			fprintf(fp, "%s = %s\n", var->key, var->value);
-		}
+		conf_dump_section(section, fp);
 	}
-	fprintf(fp, "\n");
-}
-
-struct conf_section *
-conf_next_matching_section(struct conf *conf, size_t *i1, size_t *i2,
-	char const *sect, char const *key, char const *value)
-{
-	assert(key != NULL);
-	assert(value != NULL);
-
-	while (*i1 < array_length(&conf->sections)) {
-		struct conf_section *section = array_i(&conf->sections, *i1);
-		char const *var;
-
-		while ((var = conf_next_value(section, i2, key)))
-			if (strcmp(var, value) == 0)
-				return section;
-		*i2 = 0;
-		if (conf_next_section(conf, i1, sect) == NULL)
-			break;
-	}
-	return NULL;
 }

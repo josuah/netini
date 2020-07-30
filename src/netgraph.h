@@ -26,11 +26,28 @@ struct netgraph_host {
 	char *name;
 	struct array ips; /* uint8_t[16] */
 	struct array macs; /* uint8_t[6] */
+	struct array links; /* struct netgraph_link */
 	struct conf_section *section;
+};
+
+enum netgraph_type {
+	NETGRAPH_T_IP,
+	NETGRAPH_T_MAC,
+	NETGRAPH_T_NAME,
+};
+
+struct netgraph_link {
+	enum netgraph_type type;
+	union {
+		uint8_t mac[6];
+		uint8_t ip[16];
+		char const *name;
+	} u;
 };
 
 /** src/netgraph.c **/
 char const * netgraph_strerror(int i);
 int netgraph_add_conf(struct array *nets, struct array *hosts, char *path, size_t *ln, struct mem_pool *pool);
+struct netgraph_host * netgraph_next_linked(struct array *hosts, struct netgraph_link *link, size_t *i);
 
 #endif

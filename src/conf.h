@@ -46,7 +46,7 @@ struct conf_section * conf_next_section(struct conf *conf, size_t *i, char const
 struct conf_variable * conf_next_variable(struct conf_section *section, size_t *i, char const *key);
 char * conf_next_value(struct conf_section *section, size_t *i, char const *key);
 char const * conf_get_variable(struct conf *conf, char const *s_name, char const *v_name);
+void conf_dump_section(struct conf_section *section, FILE *fp);
 void conf_dump(struct conf *conf, FILE *fp);
-struct conf_section * conf_next_matching_section(struct conf *conf, size_t *i1, size_t *i2, char const *sect, char const *key, char const *value);
 
 #endif
