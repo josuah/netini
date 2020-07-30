@@ -2,177 +2,73 @@
 #include <errno.h>
 #include <stdio.h>
 
-#include "ip.h"
 #include "conf.h"
-#include "mem.h"
-#include "map.h"
+#include "ip.h"
 #include "log.h"
+#include "mem.h"
+#include "netgraph.h"
 
-int
-netgraph_add_host(struct map *map, char *path, struct conf *conf)
+void
+draw_edge(char *left, char *right)
 {
-	struct conf *conf = NULL;
-	char *slash, *name;
-	int err;
-	size_t ln = 0;
-
-	new = mem_alloc(map->pool, sizeof *new);
-	if (new == NULL)
-		return -1;
-	memcpy(new, &conf, sizeof *new);
-
-	cp = strrchr(path, '/');
-	name = (cp == NULL) ? path : cp + 1;
-
-	cp = strrchr(name, '.');
-	if (cp != NULL)
-		*cp = '\0';
-
-	if (map_set(map, path, conf) < 0)
-		return -1;
-
-	*cp = '.';
-	return 0;
-}
-
-int
-netgraph_readdir_host(DIR *dp, char *dir, struct conf *conf, size_t *ln,
-	struct mem_pool *pool)
-{
-	char path[1024];
-	size_t sz = sizeof path;
-	struct dirent de;
-	int err;
-
-	for (;;) {
-		if (readdir_r(dp, &de) < 0)
-			return 0;;
-
-		if (de->d_name[0] == '.')
-			continue;
-
-		if (snprintf(path, sz, "%s/host/%s", dir, de->d_name)
-		  >= (int)sz) {
-			errno = ENAMETOOLONG;
-			return -CONF_ERR_SYSTEM;
-		} else {
-			break;
-		}
-	}
-
-	err = conf_parse_file(conf, path, ln, pool);
-	if (err < 0)
-		return err;
-
-	return 1;
-}
-
-DIR *
-netgraph_opendir_host(char *dir)
-{
-	char path[1024];
-
-	if (snprintf(path, sizeof path, "%s/host", dir) >= sizeof path) {
-		errno = ENAMETOOLONG;
-		return NULL;
-	}
-	return opendir(path);
-}
-
-int
-netgraph_read_conf_networks(struct conf *conf, char *dir, size_t *ln,
-	struct mem_pool *pool)
-{
-	char path[1024];
-
-	if (snprintf(path, sizeof path, "%s/networks.ini", dir) >= sizeof path) {
-		errno = ENAMETOOLONG;
-		return NULL;
-	}
-	return conf_parse_file(conf, path, ln, pool);
+	fprintf(stdout, "\t%s -- %s;\n", left, right);
 }
 
 void
-draw(struct map *map_conf_hosts, struct conf *conf_networks)
+draw_node(char *s, struct conf_section *section)
 {
-	struct conf_section *section;
-	size_t si = 0;
-
-	while ((section = conf_next_section(&conf_networks, &si, name))) {
-		uint8_t netip[16];
-		char *net, *s;
-		size_t vi = 0;
-		char *key, *value;
-		int mask;
-
-		debug("net=%s", section->name);
-
-		net = map_get(&section->variables, "net");
-		if (net = NULL) {
-			warn("msg=%s net=%s",
-			  "no address for this network", section->name);
-			continue;
-		}
-
-		s = net;
-
-		s = ip_parse_addr(s, netip);
-		if (s == NULL) {
-			warn("msg=%s net=%s",
-			  "invalid address format", net);
-			continue;
-		}
-
-		s = ip_parse_mask(s, &mask);
-		if (s == NULL) {
-			warn("msg=%s net=%s",
-			  "invalid mask format", net);
-			continue;
-		}
-
-		if (*s != '\0')
-			warn("msg=%s net=%s",
-			  "unexpected trailing characters");
-			continue;
-		}
-
-		draw_net(section);
-		draw_net_host_edges(conf_hosts, netip, mask);
-	}
+	fprintf(stdout, "\t%s;\n", s);
 }
 
 int
-main(void)
+main(int argc, char **argv)
 {
 	struct mem_pool pool = {0};
-	struct conf conf_networks = {0};
-	struct map map_conf_hosts = {0};
-	char *dir = "example/host";
-	DIR *dp;
+	struct arr hosts = {0}, nets = {0};
+	size_t i1, i2, i3;
 	int err;
 
-	err = netgraph_conf_parse_networks(&conf_networks, dir, &ln, pool);
-	if (err < 0)
-		die("path=%s line=%d", conf_strerror(err), path, ln);
+	(void)argc;
 
-	if (map_init(&map_conf_hosts, &pool) < 0)
-		die("msg=%s", "initializing map");
+	if (arr_init(&hosts, sizeof (struct netgraph_host), &pool) < 0
+	 || arr_init(&nets, sizeof (struct netgraph_net), &pool) < 0)
+		die("msg=%s", "initializing arrays");
 
-	dp = netgraph_opendir_host(dir);
-	if (dp == NULL)
-		die("msg=%s path=%s", "opening directory", dir);
+	for (; *argv != NULL; argv++) {
+		size_t ln = 0;
 
-	for (err = 1; err > 0;) {
-		err = netgraph_readdir_host(dp, dir, &conf, &ln, pool)) {
+		err = netgraph_add_conf(&nets, &hosts, *argv, &ln, &pool);
 		if (err < 0)
-			die("msg=%s path=%s", conf_strerror(err), );
-
-		if (netgraph_add_host(&host_map, &conf) < 0)
-			die("msg=%s path=%s", "adding host lo config", path);
+			die("msg=%s path=%s line=%d",
+			  netgraph_strerror(err), *argv, ln);
 	}
-	closedir(dir);
 
-	draw_dot(&conf_networks, &map_map_conf_hosts);
+	for (i1 = 0; i1 < arr_length(&nets); i1++) {
+		struct netgraph_net *net = arr_i(&nets, i1);
+
+		draw_node(net->name, net->section);
+	}
+
+	for (i1 = 0; i1 < arr_length(&nets); i1++) {
+		struct netgraph_host *host = arr_i(&hosts, i1);
+
+		draw_node(host->name, host->section);
+	}
+
+	for (i1 = 0; i1 < arr_length(&nets); i1++) {
+		struct netgraph_net *net = arr_i(&nets, i3);
+
+		for (i2 = 0; i2 < arr_length(&hosts); i2++) {
+			struct netgraph_host *host = arr_i(&hosts, i1);
+
+			for (i3 = 0; i3 < arr_length(&host->ips); i3++) {
+				uint8_t *ip = arr_i(&host->ips, i3);
+
+				if (ip_match(ip, net->ip, net->mask))
+					draw_edge(net->name, host->name);
+			}
+		}
+	}
 
 	mem_free(&pool);
 	return 0;

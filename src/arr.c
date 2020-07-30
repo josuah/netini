@@ -77,6 +77,7 @@ arr_init(struct arr *array, size_t sz, struct mem_pool *pool)
 
 	array->init = 1;
 	array->sz = sz;
+	array->pool = pool;
 	array->mem = mem_alloc(pool, 0);
 	if (array->mem == NULL)
 		return -1;

@@ -109,9 +109,6 @@ ip_parse_mask(char const *s, int version, int *mask)
 	return (s);
 }
 
-/*
- * Store a plain text form into <ip> and return the length (in bytes).
- */
 char const *
 ip_parse_in_addr_arpa(char const *s, uint8_t *ip, int *prefixlen)
 {
@@ -179,9 +176,6 @@ ip_version(uint8_t *ip)
 	return (memcmp(ip, prefix, 12) == 0 ? 4 : 6);
 }
 
-/*
- * Match an IP address against a network address for up to prefixlen bytes.
- */
 int
 ip_match(uint8_t *ip1, uint8_t *ip2, int prefixlen)
 {

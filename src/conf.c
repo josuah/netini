@@ -9,7 +9,6 @@
 
 #include "arr.h"
 #include "compat.h"
-#include "map.h"
 #include "mem.h"
 
 /*
@@ -50,15 +49,31 @@ conf_strerror(int i)
 		return "variable name must be at least one character long";
 	case CONF_ERR_EXTRA_AFTER_SECTION:
 		return "unexpected data found after section name";
+	case CONF_ERR_ENUM_END:
+		break;
 	}
 	assert(!"invalid error code");
 	return "unknown error";
 }
 
 int
+conf_init(struct conf *conf, struct mem_pool *pool)
+{
+	assert(conf->init == 0);
+
+	if (arr_init(&conf->sections, sizeof(struct conf_section), pool) < 0)
+		return -CONF_ERR_SYSTEM;
+
+	conf->pool = pool;
+	conf->init = 1;
+	return 0;
+}
+
+static int
 conf_parse_variable(struct conf *conf, char *line)
 {
-	char *buf, *eq, *val, *key, *end;
+	struct conf_variable variable = {0};
+	char *buf, *eq, *end;
 	size_t len = strlen(line);
 
 	assert(conf->init == 1);
@@ -76,22 +91,22 @@ conf_parse_variable(struct conf *conf, char *line)
 		return -CONF_ERR_MISSING_EQUAL;
 	*eq = '\0';
 
-	key = buf;
-	end = key + strcspn(key, " \t");
-	if (end == key)
+	variable.key = buf;
+	end = variable.key + strcspn(variable.key, " \t");
+	if (end == variable.key)
 		return -CONF_ERR_EMPTY_VARIABLE;
 	*end = '\0';
 
-	val = eq + 1;
-	val += strspn(val, " \t");
+	variable.value = eq + 1;
+	variable.value += strspn(variable.value, " \t");
 
-	if (map_set(&conf->current->variables, key, val) < 0)
+	if (arr_append(&conf->current->variables, &variable) < 0)
 		return -CONF_ERR_SYSTEM;
 
 	return 0;
 }
 
-int
+static int
 conf_init_section(struct conf_section *section, char *name,
 	struct mem_pool *pool)
 {
@@ -103,7 +118,7 @@ conf_init_section(struct conf_section *section, char *name,
 	if (strlcpy(section->name, name, sz) >= sz)
 		return -CONF_ERR_SECTION_NAME_TOO_LONG;
 
-	if (map_init(&section->variables, pool) < 0)
+	if (arr_init(&section->variables, sizeof section->variables, pool) < 0)
 		return -CONF_ERR_SYSTEM;
 
 	section->init = 1;
@@ -140,7 +155,7 @@ conf_parse_section(struct conf *conf, char *line)
 	return 0;
 }
 
-int
+static int
 conf_parse_line(struct conf *conf, char *line)
 {
 	if (*line == '[')
@@ -148,20 +163,7 @@ conf_parse_line(struct conf *conf, char *line)
 	return conf_parse_variable(conf, line);
 }
 
-int
-conf_init(struct conf *conf, struct mem_pool *pool)
-{
-	assert(conf->init == 0);
-
-	if (arr_init(&conf->sections, sizeof(struct conf_section), pool) < 0)
-		return -CONF_ERR_SYSTEM;
-
-	conf->pool = pool;
-	conf->init = 1;
-	return 0;
-}
-
-int
+static int
 conf_getline(char **line, size_t *sz, FILE *fp, size_t *ln)
 {
 	ssize_t r, i;
@@ -228,11 +230,13 @@ conf_parse_file(struct conf *conf, char const *path, size_t *ln,
 struct conf_section *
 conf_next_section(struct conf *conf, size_t *i, char const *name)
 {
+	struct conf_section *section;
+
 	assert(conf->init == 1);
 	assert(*i <= arr_length(&conf->sections));
 
 	while (*i < arr_length(&conf->sections)) {
-		struct conf_section *section = arr_i(&conf->sections, (*i)++);
+		section = arr_i(&conf->sections, (*i)++);
 
 		if (name == NULL || strcasecmp(section->name, name) == 0)
 			return section;
@@ -240,41 +244,46 @@ conf_next_section(struct conf *conf, size_t *i, char const *name)
 	return NULL;
 }
 
-int
-conf_next_key_value(struct conf_section *section, size_t *i,
-	char **key, char **value)
+struct conf_variable *
+conf_next_variable(struct conf_section *section, size_t *i, char *key)
 {
-	struct map_entry *entry;
+	struct conf_variable *variable;
 
-	if (*i >= map_length(&section->variables))
-		return 0;
-
-	entry = map_i(&section->variables, *i);
-	*key = entry->key;
-	*value = entry->value;
-	*i += 1;
-	return 1;
-}
-
-char const *
-conf_get_section_variable(struct conf_section *section, char *key)
-{
 	assert(section->init == 1);
+	assert(*i <= arr_length(&section->variables));
 
-	return map_get(&section->variables, key);
+	while (*i < arr_length(&section->variables)) {
+		variable = arr_i(&section->variables, (*i)++);
+
+		if (key == NULL || strcasecmp(variable->key, key) == 0)
+			return variable;
+	}
+	return NULL;
+}
+
+char *
+conf_next_value(struct conf_section *section, size_t *i, char *key)
+{
+	struct conf_variable *variable = conf_next_variable(section, i, key);
+
+	if (variable == NULL)
+		return NULL;
+	return variable->value;
 }
 
 char const *
-conf_get_variable(struct conf *conf, char *s_name, char *key)
+conf_get_variable(struct conf *conf, char *s_name, char *v_name)
 {
-	struct conf_section *section = NULL, *se = NULL;
-	size_t i = 0;
+	struct conf_section *section = NULL;
+	size_t i;
 
-	while ((se = conf_next_section(conf, &i, s_name)) != NULL)
-		section = se;
+	i = 0;
+	section = conf_next_section(conf, &i, s_name);
 	if (section == NULL)
 		return NULL;
-	return conf_get_section_variable(section, key);
+
+	i = 0;
+	return conf_next_value(section, &i, v_name);
 }
 
 void
@@ -283,15 +292,14 @@ conf_dump(struct conf *conf, FILE *fp)
 	struct conf_section *section;
 
 	for (size_t i = 0; (section = conf_next_section(conf, &i, NULL));) {
-		struct map *map = &section->variables;
+		struct arr *arr = &section->variables;
 
-		fprintf(fp, "\n[%s]\n\n", section->name);
+		fprintf(fp, "%s[%s]\n", (i > 0) ? "\n" : "", section->name);
 
-		for (size_t j = 0; j < map_length(map); j++) {
-			struct map_entry *entry = arr_i(&map->array, j);
-			char *key = entry->key, *value = entry->value;
+		for (size_t j = 0; j < arr_length(arr); j++) {
+			struct conf_variable *var = arr_i(arr, j);
 
-			fprintf(fp, "%s = %s\n", key, value);
+			fprintf(fp, "%s = %s\n", var->key, var->value);
 		}
 	}
 	fprintf(fp, "\n");

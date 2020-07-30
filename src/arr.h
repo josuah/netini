@@ -6,6 +6,7 @@
 #include "mem.h"
 
 struct arr {
+	struct mem_pool *pool;
 	int init;
 	size_t sz;
 	void *mem;

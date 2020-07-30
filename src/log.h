@@ -4,6 +4,7 @@
 #include <stdarg.h>
 
 /** src/log.c **/
+char *arg0;
 void log_vprintf(char const *level, char const *fmt, va_list va);
 void die(char const *fmt, ...);
 void warn(char const *fmt, ...);
