@@ -43,5 +43,5 @@ install:
 
 dist: clean
 	mkdir -p ${NAME}-${VERSION}
-	cp -r README.md Makefile bin doc ${SRC} ${NAME}-${VERSION}
+	cp -r README.md Makefile *.c bin doc src ${NAME}-${VERSION}
 	tar -cf - ${NAME}-${VERSION} | gzip -c >${NAME}-${VERSION}.tar.gz
