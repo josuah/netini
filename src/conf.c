@@ -72,7 +72,7 @@ conf_init(struct conf *conf, struct mem_pool *pool)
 }
 
 static int
-conf_parse_variable(struct conf *conf, char *line)
+conf_parse_variable(struct conf *conf, char *line, size_t ln)
 {
 	struct conf_variable variable = {0};
 	char *buf, *eq, *end;
@@ -101,6 +101,7 @@ conf_parse_variable(struct conf *conf, char *line)
 
 	variable.value = eq + 1;
 	variable.value += strspn(variable.value, " \t");
+	variable.ln = ln;
 
 	if (array_append(&conf->current->variables, &variable) < 0)
 		return -CONF_ERR_SYSTEM;
@@ -120,7 +121,8 @@ conf_init_section(struct conf_section *section, char *name,
 	if (strlcpy(section->name, name, sz) >= sz)
 		return -CONF_ERR_SECTION_NAME_TOO_LONG;
 
-	if (array_init(&section->variables, sizeof section->variables, pool) < 0)
+	sz = sizeof section->variables;
+	if (array_init(&section->variables, sz, pool) < 0)
 		return -CONF_ERR_SYSTEM;
 
 	section->init = 1;
@@ -128,10 +130,11 @@ conf_init_section(struct conf_section *section, char *name,
 }
 
 int
-conf_parse_section(struct conf *conf, char *line)
+conf_parse_section(struct conf *conf, char *line, size_t ln)
 {
 	struct conf_section section = {0};
 	char *s;
+	size_t i;
 	int err;
 
 	assert(conf->init == 1);
@@ -150,19 +153,22 @@ conf_parse_section(struct conf *conf, char *line)
 	if (err < 0)
 		return err;
 
+	section.ln = ln;
+
 	if (array_append(&conf->sections, &section) < 0)
 		return -CONF_ERR_SYSTEM;
 
-	conf->current = array_i(&conf->sections, array_length(&conf->sections) - 1);
+	i = array_length(&conf->sections) - 1;
+	conf->current = array_i(&conf->sections, i);
 	return 0;
 }
 
 static int
-conf_parse_line(struct conf *conf, char *line)
+conf_parse_line(struct conf *conf, char *line, size_t ln)
 {
 	if (*line == '[')
-		return conf_parse_section(conf, line);
-	return conf_parse_variable(conf, line);
+		return conf_parse_section(conf, line, ln);
+	return conf_parse_variable(conf, line, ln);
 }
 
 static int
@@ -208,7 +214,7 @@ conf_parse_stream(struct conf *conf, FILE *fp, size_t *ln,
 
 	*ln = 0;
 	while ((err = conf_getline(&line, &sz, fp, ln)) > 0) {
-		err = conf_parse_line(conf, line);
+		err = conf_parse_line(conf, line, *ln);
 		if (err < 0)
 			break;
 	}

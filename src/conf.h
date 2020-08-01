@@ -27,11 +27,13 @@ struct conf {
 
 struct conf_section {
 	int init;
+	size_t ln;
 	char name[64];
 	struct array variables; /* struct conf_variable */
 };
 
 struct conf_variable {
+	size_t ln;
 	char *key, *value;
 	char buf[];
 };
@@ -39,7 +41,7 @@ struct conf_variable {
 /** src/conf.c **/
 char const * conf_strerror(int i);
 int conf_init(struct conf *conf, struct mem_pool *pool);
-int conf_parse_section(struct conf *conf, char *line);
+int conf_parse_section(struct conf *conf, char *line, size_t ln);
 int conf_parse_stream(struct conf *conf, FILE *fp, size_t *ln, struct mem_pool *pool);
 int conf_parse_file(struct conf *conf, char const *path, size_t *ln, struct mem_pool *pool);
 struct conf_section * conf_next_section(struct conf *conf, size_t *i, char const *name);

@@ -20,30 +20,38 @@ netgraph_strerror(int i)
 	case NETGRAPH_ERR_SYSTEM:
 		return "system error";
 	case NETGRAPH_ERR_BAD_ADDR_FORMAT:
-		return "invalid address format for some \"ip =\" variable";
+		return "invalid address format for some ip= variable";
 	case NETGRAPH_ERR_BAD_MASK_FORMAT:
 		return "invalid mask format after ip address";
 	case NETGRAPH_ERR_BAD_MAC_FORMAT:
-		return "invalid address format for some \"mac =\" variable";
+		return "invalid address format for some mac= variable";
 	case NETGRAPH_ERR_TRAILING_VALUE:
-		return "trailing value after \"ip =\" value";
+		return "trailing value after ip= value";
 	case NETGRAPH_ERR_MISSING_NAME_VARIABLE:
-		return "not \"name =\" variable found";
+		return "not name= variable found";
 	case NETGRAPH_ERR_NET_WITHOUT_IP:
 		return "network entry lacks an IP address";
+	case NETGRAPH_ERR_MULTIPLE_NET_IP:
+		return "network entry with multiple IP addresses";
 	}
 	return conf_strerror(i);
 }
 
 static int
-netgraph_add_net_ip(struct netgraph_net *net, struct conf_section *section)
+netgraph_add_net_ip(struct netgraph_net *net, struct conf_section *section, size_t *ln)
 {
+	struct conf_variable *var;
 	char const *s;
 	size_t i = 0;
 
-	s = conf_next_value(section, &i, "ip");
-	if (s == NULL)
+	*ln = section->ln;
+
+	var = conf_next_variable(section, &i, "ip");
+	if (var == NULL)
 		return -NETGRAPH_ERR_NET_WITHOUT_IP;
+
+	*ln = var->ln;
+	s = var->value;
 
 	s = ip_parse_addr(s, net->ip);
 	if (s == NULL)
@@ -55,23 +63,37 @@ netgraph_add_net_ip(struct netgraph_net *net, struct conf_section *section)
 	if (*s != '\0')
 		return -NETGRAPH_ERR_TRAILING_VALUE;
 
+	var = conf_next_variable(section, &i, "ip");
+	if (var != NULL) {
+		*ln = var->ln;
+		return -NETGRAPH_ERR_MULTIPLE_NET_IP;
+	}
+
 	return 0;
 }
 
 static int
-netgraph_add_host_ips(struct netgraph_host *host, struct conf_section *section)
+netgraph_add_host_ips(struct netgraph_host *host, struct conf_section *section, size_t *ln)
 {
+	struct conf_variable *var;
 	char const *s;
 	size_t i = 0;
 
-	while ((s = conf_next_value(section, &i, "ip"))) {
+	*ln = section->ln;
+
+	while ((var = conf_next_variable(section, &i, "ip"))) {
 		uint8_t ip[16] = {0};
+
+		*ln = var->ln;
+		s = var->value;
 
 		s = ip_parse_addr(s, ip);
 		if (s == NULL)
 			return -NETGRAPH_ERR_BAD_ADDR_FORMAT;
 		if (*s != '\0')
 			return -NETGRAPH_ERR_TRAILING_VALUE;
+
+		*ln = 0;
 
 		if (array_append(&host->ips, ip) < 0)
 			return -NETGRAPH_ERR_SYSTEM;
@@ -80,19 +102,27 @@ netgraph_add_host_ips(struct netgraph_host *host, struct conf_section *section)
 }
 
 static int
-netgraph_add_host_macs(struct netgraph_host *host, struct conf_section *section)
+netgraph_add_host_macs(struct netgraph_host *host, struct conf_section *section, size_t *ln)
 {
+	struct conf_variable *var;
 	char const *s;
 	size_t i = 0;
 
-	while ((s = conf_next_value(section, &i, "mac"))) {
+	*ln = section->ln;
+
+	while ((var = conf_next_variable(section, &i, "mac"))) {
 		uint8_t mac[6] = {0};
+
+		*ln = var->ln;
+		s = var->value;
 
 		s = mac_parse_addr(s, mac);
 		if (s == NULL)
 			return -NETGRAPH_ERR_BAD_MAC_FORMAT;
 		if (*s != '\0')
 			return -NETGRAPH_ERR_TRAILING_VALUE;
+
+		*ln = 0;
 
 		if (array_append(&host->macs, mac) < 0)
 			return -NETGRAPH_ERR_SYSTEM;
@@ -120,13 +150,15 @@ netgraph_parse_link(struct netgraph_link *link, char const *s)
 }
 
 static int
-netgraph_add_host_links(struct netgraph_host *host, struct conf_section *section)
+netgraph_add_host_links(struct netgraph_host *host, struct conf_section *section, size_t *ln)
 {
 	char const *s;
 	size_t i = 0;
 
 	while ((s = conf_next_value(section, &i, "link"))) {
 		struct netgraph_link link = {0};
+
+		*ln = 0;
 
 		netgraph_parse_link(&link, s);
 		if (array_append(&host->links, &link) < 0)
@@ -136,11 +168,14 @@ netgraph_add_host_links(struct netgraph_host *host, struct conf_section *section
 }
 
 static int
-netgraph_add_host(struct array *array, struct conf_section *section)
+netgraph_add_host(struct array *array, struct conf_section *section, size_t *ln)
 {
 	struct netgraph_host host = {0};
+	struct conf_variable *var;
 	size_t i, sz;
 	int err;
+
+	*ln = 0;
 
 	if (array_init(&host.ips, 16, array->pool) < 0)
 		return -NETGRAPH_ERR_SYSTEM;
@@ -153,21 +188,23 @@ netgraph_add_host(struct array *array, struct conf_section *section)
 		return -NETGRAPH_ERR_SYSTEM;
 
 	i = 0;
-	host.name = conf_next_value(section, &i, "name");
+	var = conf_next_variable(section, &i, "name");
+	*ln = var->ln;
+	host.name = var->value;
 	if (host.name == NULL)
 		return -NETGRAPH_ERR_MISSING_NAME_VARIABLE;
 
 	host.section = section;
 
-	err = netgraph_add_host_ips(&host, section);
+	err = netgraph_add_host_ips(&host, section, ln);
 	if (err < 0)
 		return err;
 
-	err = netgraph_add_host_macs(&host, section);
+	err = netgraph_add_host_macs(&host, section, ln);
 	if (err < 0)
 		return err;
 
-	err = netgraph_add_host_links(&host, section);
+	err = netgraph_add_host_links(&host, section, ln);
 	if (err < 0)
 		return err;
 
@@ -179,7 +216,7 @@ netgraph_add_host(struct array *array, struct conf_section *section)
 }
 
 static int
-netgraph_add_net(struct array *nets, struct conf_section *section)
+netgraph_add_net(struct array *nets, struct conf_section *section, size_t *ln)
 {
 	struct netgraph_net net = {0};
 	size_t i;
@@ -192,7 +229,7 @@ netgraph_add_net(struct array *nets, struct conf_section *section)
 	if (net.name == NULL)
 		return -NETGRAPH_ERR_MISSING_NAME_VARIABLE;
 
-	err = netgraph_add_net_ip(&net, section);
+	err = netgraph_add_net_ip(&net, section, ln);
 	if (err < 0)
 		return err;
 
@@ -218,14 +255,14 @@ netgraph_add_conf(struct array *nets, struct array *hosts, char *path, size_t *l
 
 	i = 0;
 	while ((section = conf_next_section(&conf, &i, "net"))) {
-		err = netgraph_add_net(nets, section);
+		err = netgraph_add_net(nets, section, ln);
 		if (err < 0)
 			return err;
 	}
 
 	i = 0;
 	while ((section = conf_next_section(&conf, &i, "host"))) {
-		err = netgraph_add_host(hosts, section);
+		err = netgraph_add_host(hosts, section, ln);
 		if (err < 0)
 			return err;
 	}
