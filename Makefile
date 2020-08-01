@@ -1,5 +1,5 @@
 NAME = netini
-VERSION = 0.1
+VERSION = 0.2
 
 SRC = src/mem.c src/ip.c src/log.c src/compat/strchomp.c src/compat/strlcpy.c \
   src/compat/strip.c src/conf.c src/array.c src/netini.c src/mac.c
