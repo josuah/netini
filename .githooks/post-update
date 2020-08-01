@@ -9,7 +9,8 @@ notwiki-doc html "/srv/http/vhost/code/$project" .
 notwiki-doc gph "/srv/gopher/$project" .
 notwiki-mandoc html html /srv/http/vhost/code/man .
 notwiki-mandoc gph utf8 /srv/gopher/man .
-cp style.css /srv/http/vhost/code
+cp example.png "/srv/http/vhost/code/$project"
+cp example.png "/srv/gopher/$project"
 
 cd "$tmp"
 make dist
