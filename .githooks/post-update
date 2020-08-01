@@ -1,0 +1,17 @@
+#!/bin/sh -ex
+trap 'rm -rf "$tmp"' INT TERM EXIT HUP
+tmp=$(git-hooks-workdir "$@")
+
+project=netini
+
+cd "$tmp/doc"
+notwiki-doc html "/srv/http/vhost/code/$project" .
+notwiki-doc gph "/srv/gopher/$project" .
+notwiki-mandoc html html /srv/http/vhost/code/man .
+notwiki-mandoc gph utf8 /srv/gopher/man .
+cp style.css /srv/http/vhost/code
+
+cd "$tmp"
+make dist
+cp *.tar.gz "/srv/http/vhost/code/$project"
+cp *.tar.gz "/srv/gopher/$project"
