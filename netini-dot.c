@@ -51,43 +51,6 @@ draw_node(char *s, struct conf_section *section, char const *style)
 	fprintf(stdout, "\"] }\n");
 }
 
-void
-add(struct array *nets, struct array *hosts, char *path, struct mem_pool *pool)
-{
-	size_t ln = 0;
-
-	err = netini_add_conf(nets, hosts, path, &ln, pool);
-	if (err < 0)
-		die("msg=%s path=%s line=%d",
-		  netini_strerror(err), path, ln);
-
-}
-
-void
-merge_ips(struct array *iplist1, struct array *iplist2)
-{
-	for (size_t i = 0; i < ; i++) {
-		uint8_t *ip1 = array_i(hosts, i1);
-		uint8_t *ip2 = array_i(hosts, i2);
-
-		if (ip_cmp(ip1, ip2) == 0) {
-			array_delete(hosts, ip2);
-			info();
-		} else {
-			i2++;
-		}
-	}
-}
-
-void
-merge_hosts(struct array *hosts, size_t pos)
-{
-	for (size_t i1 = 0; i1 < pos; i1++) {
-		for (size_t i2 = pos; i2 < array_length(hosts);) {
-		};
-	}
-}
-
 int
 main(int argc, char **argv)
 {
@@ -100,23 +63,14 @@ main(int argc, char **argv)
 	 || array_init(&nets, sizeof (struct netini_net), &pool) < 0)
 		die("msg=%s", "initializing arrayays");
 
-	for (int opt; getopt(argc, argv, "");) {
-		size_t len_host = array_length(&hosts);
-		size_t len_net = array_length(&nets);
+	for (arg0 = *argv++; *argv != NULL; argv++, argc--) {
+		size_t ln = 0;
 
-		switch (opt) {
-		case 'a':
-			add(&hosts, &nets, *argv, &pool);
-			break;
-		case 'm':
-			add(&hosts, &nets, *argv, &pool);
-			merge_hosts(&hosts, len_hosts);
-			merge_nets(&nets, len_nets);
-			break;
+		err = netini_add_conf(&nets, &hosts, *argv, &ln, &pool);
+		if (err < 0)
+			die("msg=%s path=%s line=%d",
+			  netini_strerror(err), *argv, ln);
 	}
-	arg0 = *argv;
-	argv += optind;
-	argc -= optind;
 
 	draw_beg();
 

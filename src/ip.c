@@ -192,6 +192,7 @@ ip_match(uint8_t *ip1, uint8_t *ip2, int prefixlen)
 	return (ip1[n] & mask) == (ip2[n] & mask);
 }
 
+int
 ip_cmp(uint8_t *ip1, uint8_t *ip2)
 {
 	return memcmp(ip1, ip2, 16);

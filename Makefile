@@ -2,10 +2,10 @@ NAME = netini
 VERSION = 0.0
 
 SRC = src/mem.c src/ip.c src/log.c src/compat/strchomp.c src/compat/strlcpy.c \
-  src/compat/strip.c src/conf.c src/array.c src/mac.c src/netini.c
+  src/compat/strip.c src/conf.c src/array.c src/netini.c src/mac.c
 
-HDR = src/ip.h src/conf.h src/netini.h src/array.h src/test.h src/compat.h \
-  src/mem.h src/mac.h src/log.h
+HDR = src/ip.h src/conf.h src/array.h src/test.h src/compat.h src/mem.h \
+  src/netini.h src/mac.h src/log.h
 
 BIN = netini-dot
 
@@ -43,5 +43,5 @@ install:
 
 dist: clean
 	mkdir -p ${NAME}-${VERSION}
-	cp -r README Makefile doc ${SRC} ${NAME}-${VERSION}
+	cp -r README.md Makefile bin doc ${SRC} ${NAME}-${VERSION}
 	tar -cf - ${NAME}-${VERSION} | gzip -c >${NAME}-${VERSION}.tar.gz
