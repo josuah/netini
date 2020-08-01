@@ -113,7 +113,7 @@ From this from `arp -a` (or `ip neigh show` on Linux, randomly generated here):
 10.191.20.31 dev wlan0 lladdr 84:18:26:bd:88:2d ref 1 used 0/0/0 probes 6 REACHABLE
 ```
 
-`netini-arp linux` turns it into this:
+`netini-arp linux skynet` turns it into this:
 
 ```
 [host]
