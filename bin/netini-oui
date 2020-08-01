@@ -6,7 +6,7 @@ function oui_shorten(name,
 {
 	gsub("&", " and ", name)
 	gsub("[^a-zA-Z0-9 ]", " ", name)
-	gsub(" +", " ", name)
+	gsub("  +", " ", name)
 	sub("^ ", "", name)
 	sub(" $", "", name)
 
@@ -23,8 +23,7 @@ function oui_shorten(name,
 		"|s ?a ?r ?l"	"|s ?a"		"|s ?p ?a"	"|sp ?k" \
 		"|s ?r ?l"	"|systems"	"|the"		"|zao" \
 		"|z ?o ?o" \
-	")", " ", name))
-		sub(" $", "", name);
+	")$", " ", name));
 
 	n = split(name, segment, " ")
 	name = ""

@@ -1,11 +1,25 @@
 #!/bin/sh
 
-if [ "$#" -lt 1 ] || [ -z "${1##-*}" ]; then
-	echo >&2 "usage: ${0##*/} (freebsd|linux|mikrotik) [file...]"
+if [ "$#" -lt 2 ] || [ -z "${1##-*}" ]; then
+	echo >&2 "usage: ${0##*/} (freebsd|linux|mikrotik) <prefix> [file...]"
 	exit 1
 fi
 
-type=$1
-shift
+type=$1 prefix=$2
+shift 2
 
-"netini-arp-$type" "$@" | netini-arp2ini
+"netini-arp-$type" "$@" | netini-oui | awk -v prefix="$prefix" '
+{
+	gsub("..", ":&", $1)
+
+	oui = $4
+	for (num = 1; all_names[prefix "-" oui "-" num]++; num++);
+
+	if (NR > 1)
+		print ""
+	print "[host]"
+	print "name", "=", prefix "-" oui "-" num
+	print "ip", "=", $2
+	print "mac", "=", substr($1, 2)
+}
+' "$@"
