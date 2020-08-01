@@ -1,0 +1,11 @@
+#!/bin/sh
+
+if [ "$#" -lt 1 ] || [ -z "${1##-*}" ]; then
+	echo >&2 "usage: ${0##*/} (freebsd|linux|mikrotik) [file...]"
+	exit 1
+fi
+
+type=$1
+shift
+
+"netini-arp-$type" "$@" | netini-arp2ini

@@ -1,0 +1,52 @@
+#!/usr/bin/awk -f
+# append an OUI to every line starting with a mac address
+
+function oui_shorten(name,
+	segment, i, n)
+{
+	gsub("&", " and ", name)
+	gsub("[^a-zA-Z0-9 ]", " ", name)
+	gsub(" +", " ", name)
+	sub("^ ", "", name)
+	sub(" $", "", name)
+
+	name = tolower(name)
+
+	while (sub(" (" \
+		 "a s"		"|ab"		"|ag"		"|b ?v" \
+		"|co"		"|company"	"|corp"		"|corporation" \
+		"|de c ?v"	"|gmbh"		"|holding"	"|inc" \
+		"|incorporated"	"|jsc"		"|kg"		"|k k" \
+		"|limited"	"|llc"		"|ltd"		"|n ?v" \
+		"|oao"		"|of"		"|ooo"		"|oy" \
+		"|oyj"		"|plc"		"|pty"		"|pvt" \
+		"|s ?a ?r ?l"	"|s ?a"		"|s ?p ?a"	"|sp ?k" \
+		"|s ?r ?l"	"|systems"	"|the"		"|zao" \
+		"|z ?o ?o" \
+	")", " ", name))
+		sub(" $", "", name);
+
+	n = split(name, segment, " ")
+	name = ""
+	for (i = 1; i <= n; i++)
+		name = name toupper(substr(segment[i], 1, 1)) substr(segment[i], 2)
+
+	return name
+}
+
+BEGIN {
+	url = "http://standards-oui.ieee.org/oui/oui.csv"
+	if (system("test -f /var/tmp/oui.csv") > 0)
+		if (system("curl -L -o /var/tmp/oui.csv " url) != 0)
+			exit(1)
+	while (getline <"/var/tmp/oui.csv") {
+		split($0, F, ",")
+		OUI[F[2]] = F[3]
+	}
+}
+
+{
+	gsub("[^a-fA-F0-9]", "", $1)
+	gsub("[ \t]+", " ", $0)
+	print $0, oui_shorten(OUI[toupper(substr($1, 1, 6))])
+}

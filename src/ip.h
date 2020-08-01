@@ -15,6 +15,7 @@ char const * ip_parse_in_addr_arpa(char const *s, uint8_t *ip, int *prefixlen);
 char const * ip_parse_ip6_arpa(char const *s, uint8_t *ip, int *prefixlen);
 int ip_version(uint8_t *ip);
 int ip_match(uint8_t *ip1, uint8_t *ip2, int prefixlen);
+ip_cmp(uint8_t *ip1, uint8_t *ip2);
 void ip_fmt_arpa_v4(char *s, uint8_t *ip);
 void ip_fmt_arpa_v6(char *s, uint8_t *ip);
 void ip_fmt_arpa(char *s, uint8_t *ip);

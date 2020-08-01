@@ -192,6 +192,11 @@ ip_match(uint8_t *ip1, uint8_t *ip2, int prefixlen)
 	return (ip1[n] & mask) == (ip2[n] & mask);
 }
 
+ip_cmp(uint8_t *ip1, uint8_t *ip2)
+{
+	return memcmp(ip1, ip2, 16);
+}
+
 void
 ip_fmt_arpa_v4(char *s, uint8_t *ip)
 {

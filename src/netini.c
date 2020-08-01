@@ -1,4 +1,4 @@
-#include "netgraph.h"
+#include "netini.h"
 
 #include <assert.h>
 #include <dirent.h>
@@ -12,11 +12,11 @@
 #include "mem.h"
 
 char const *
-netgraph_strerror(int i)
+netini_strerror(int i)
 {
-	enum netgraph_errno netgraph_err = (i < 0) ? -i : i;
+	enum netini_errno netini_err = (i < 0) ? -i : i;
 
-	switch (netgraph_err) {
+	switch (netini_err) {
 	case NETGRAPH_ERR_SYSTEM:
 		return "system error";
 	case NETGRAPH_ERR_BAD_ADDR_FORMAT:
@@ -38,7 +38,7 @@ netgraph_strerror(int i)
 }
 
 static int
-netgraph_add_net_ip(struct netgraph_net *net, struct conf_section *section, size_t *ln)
+netini_add_net_ip(struct netini_net *net, struct conf_section *section, size_t *ln)
 {
 	struct conf_variable *var;
 	char const *s;
@@ -73,7 +73,7 @@ netgraph_add_net_ip(struct netgraph_net *net, struct conf_section *section, size
 }
 
 static int
-netgraph_add_host_ips(struct netgraph_host *host, struct conf_section *section, size_t *ln)
+netini_add_host_ips(struct netini_host *host, struct conf_section *section, size_t *ln)
 {
 	struct conf_variable *var;
 	char const *s;
@@ -102,7 +102,7 @@ netgraph_add_host_ips(struct netgraph_host *host, struct conf_section *section, 
 }
 
 static int
-netgraph_add_host_macs(struct netgraph_host *host, struct conf_section *section, size_t *ln)
+netini_add_host_macs(struct netini_host *host, struct conf_section *section, size_t *ln)
 {
 	struct conf_variable *var;
 	char const *s;
@@ -131,7 +131,7 @@ netgraph_add_host_macs(struct netgraph_host *host, struct conf_section *section,
 }
 
 static void
-netgraph_parse_link(struct netgraph_link *link, char const *s)
+netini_parse_link(struct netini_link *link, char const *s)
 {
 	char const *cp;
 
@@ -150,17 +150,17 @@ netgraph_parse_link(struct netgraph_link *link, char const *s)
 }
 
 static int
-netgraph_add_host_links(struct netgraph_host *host, struct conf_section *section, size_t *ln)
+netini_add_host_links(struct netini_host *host, struct conf_section *section, size_t *ln)
 {
 	char const *s;
 	size_t i = 0;
 
 	while ((s = conf_next_value(section, &i, "link"))) {
-		struct netgraph_link link = {0};
+		struct netini_link link = {0};
 
 		*ln = 0;
 
-		netgraph_parse_link(&link, s);
+		netini_parse_link(&link, s);
 		if (array_append(&host->links, &link) < 0)
 			return -NETGRAPH_ERR_SYSTEM;
 	}
@@ -168,9 +168,9 @@ netgraph_add_host_links(struct netgraph_host *host, struct conf_section *section
 }
 
 static int
-netgraph_add_host(struct array *array, struct conf_section *section, size_t *ln)
+netini_add_host(struct array *array, struct conf_section *section, size_t *ln)
 {
-	struct netgraph_host host = {0};
+	struct netini_host host = {0};
 	struct conf_variable *var;
 	size_t i, sz;
 	int err;
@@ -183,7 +183,7 @@ netgraph_add_host(struct array *array, struct conf_section *section, size_t *ln)
 	if (array_init(&host.macs, 6, array->pool) < 0)
 		return -NETGRAPH_ERR_SYSTEM;
 
-	sz = sizeof(struct netgraph_link);
+	sz = sizeof(struct netini_link);
 	if (array_init(&host.links, sz, array->pool) < 0)
 		return -NETGRAPH_ERR_SYSTEM;
 
@@ -196,15 +196,15 @@ netgraph_add_host(struct array *array, struct conf_section *section, size_t *ln)
 
 	host.section = section;
 
-	err = netgraph_add_host_ips(&host, section, ln);
+	err = netini_add_host_ips(&host, section, ln);
 	if (err < 0)
 		return err;
 
-	err = netgraph_add_host_macs(&host, section, ln);
+	err = netini_add_host_macs(&host, section, ln);
 	if (err < 0)
 		return err;
 
-	err = netgraph_add_host_links(&host, section, ln);
+	err = netini_add_host_links(&host, section, ln);
 	if (err < 0)
 		return err;
 
@@ -216,9 +216,9 @@ netgraph_add_host(struct array *array, struct conf_section *section, size_t *ln)
 }
 
 static int
-netgraph_add_net(struct array *nets, struct conf_section *section, size_t *ln)
+netini_add_net(struct array *nets, struct conf_section *section, size_t *ln)
 {
-	struct netgraph_net net = {0};
+	struct netini_net net = {0};
 	size_t i;
 	int err;
 
@@ -229,7 +229,7 @@ netgraph_add_net(struct array *nets, struct conf_section *section, size_t *ln)
 	if (net.name == NULL)
 		return -NETGRAPH_ERR_MISSING_NAME_VARIABLE;
 
-	err = netgraph_add_net_ip(&net, section, ln);
+	err = netini_add_net_ip(&net, section, ln);
 	if (err < 0)
 		return err;
 
@@ -241,7 +241,7 @@ netgraph_add_net(struct array *nets, struct conf_section *section, size_t *ln)
 }
 
 int
-netgraph_add_conf(struct array *nets, struct array *hosts, char *path, size_t *ln,
+netini_add_conf(struct array *nets, struct array *hosts, char *path, size_t *ln,
 	struct mem_pool *pool)
 {
 	struct conf conf = {0};
@@ -255,14 +255,14 @@ netgraph_add_conf(struct array *nets, struct array *hosts, char *path, size_t *l
 
 	i = 0;
 	while ((section = conf_next_section(&conf, &i, "net"))) {
-		err = netgraph_add_net(nets, section, ln);
+		err = netini_add_net(nets, section, ln);
 		if (err < 0)
 			return err;
 	}
 
 	i = 0;
 	while ((section = conf_next_section(&conf, &i, "host"))) {
-		err = netgraph_add_host(hosts, section, ln);
+		err = netini_add_host(hosts, section, ln);
 		if (err < 0)
 			return err;
 	}
@@ -270,11 +270,11 @@ netgraph_add_conf(struct array *nets, struct array *hosts, char *path, size_t *l
 	return 0;
 }
 
-struct netgraph_host *
-netgraph_next_linked(struct array *hosts, struct netgraph_link *link, size_t *i)
+struct netini_host *
+netini_next_linked(struct array *hosts, struct netini_link *link, size_t *i)
 {
 	for (; *i < array_length(hosts); (*i)++) {
-		struct netgraph_host *host = array_i(hosts, *i);
+		struct netini_host *host = array_i(hosts, *i);
 		struct array *arr;
 		size_t sz;
 

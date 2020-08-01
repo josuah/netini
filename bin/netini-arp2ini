@@ -1,0 +1,25 @@
+#!/usr/bin/awk -f
+
+BEGIN {
+	if (ARGC != 2) {
+		print "usage: oui-to-ini <prefix>" >"/dev/stderr"
+		exit(1)
+	}
+
+	prefix = ARGV[1]
+	ARGC = 0
+}
+
+{
+	gsub("..", ":&", $1)
+
+	oui = $4
+	for (num = 1; all_names[prefix "-" oui "-" num]++; num++);
+
+	if (NR > 1)
+		print ""
+	print "[host]"
+	print "name", "=", prefix "-" oui "-" num
+	print "ip", "=", $2
+	print "mac", "=", substr($1, 2)
+}

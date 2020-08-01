@@ -1,0 +1,155 @@
+netini
+======
+Toolbox for observing, documenting and plotting IPv4 or IPv6 networks.
+
+How to use it?
+--------------
+The [`netini-dot(1)`](/man/netini-dot.1/) tool generating the plots is reading a
+trivial .ini format from all files passed as argument:
+
+```
+[host]
+name = router
+ip = 192.168.0.1
+ip = 13.54.99.145
+
+[net]
+name = lan
+ip = 192.168.0.0/24
+```
+
+All hosts with IPs that fit a network are linked automatically to it on the plot.
+
+`link=` variables in hosts permit to build L1 links by using a hostname, a mac
+address or an IP as value.
+
+Other tools are available to generate parts of these configuration files from
+command output coming from local hosts or routers.
+
+What is it for?
+---------------
+Plotting networks is extremely useful for understanding how it works and
+troubleshoot problems. Particularly when you do not know the network in advance.
+
+In theory, from an access to that place's router and switches, using arp tables
+and mac address tables, you can guess some of the L1/L2/L3 topology.
+
+netini is a toolset doing this: build network graph out of simple declarative
+config files, and generate config files out of raw command output from routers
+and switches.
+
+How does it work?
+-----------------
+From this:
+
+```
+
+ln=$(wc -l </var/tmp/oui.csv)
+while read ip dev iface trail; do
+	mac=$(random-mac 1 | sed 's/..:..:..://')
+	oui=$(sed -rn "$((RANDOM % ln + 1)) s/[^,]*,(..)(..)(..),.*/\1:\2:\3/ p" /var/tmp/oui.csv | tr A-Z a-z)
+	echo "$ip" "$dev" "$iface" "lladdr" "$oui:$mac" "$trail"
+done <<EOF
+
+10.191.10.130 dev wlan0 lladdr 0c:1c:20:69:d8:d8 ref 1 used 0/0/0 probes 6 REACHABLE
+10.191.10.65 dev wlan0 lladdr 08:4a:cf:e6:d0:08 ref 1 used 0/0/0 probes 6 REACHABLE
+10.191.10.28 dev wlan0 lladdr e8:5b:5b:b1:5d:db ref 1 used 0/0/0 probes 6 REACHABLE
+10.191.10.85 dev wlan0 lladdr 08:00:33:00:b7:2e ref 1 used 0/0/0 probes 6 REACHABLE
+10.191.11.239 dev wlan0 lladdr 5c:d2:e4:1b:1e:ee ref 1 used 0/0/0 probes 6 REACHABLE
+10.191.11.105 dev wlan0 lladdr 74:6e:e4:71:05:25 ref 1 used 0/0/0 probes 6 REACHABLE
+10.191.20.36 dev wlan0 lladdr 68:d4:82:66:29:7b ref 1 used 0/0/0 probes 6 REACHABLE
+10.191.20.247 dev wlan0 lladdr ac:19:9f:03:6c:f2 ref 1 used 0/0/0 probes 6 REACHABLE
+10.191.20.113 dev wlan0 lladdr 00:c0:a3:91:9d:e2 ref 1 used 0/0/0 probes 6 REACHABLE
+10.191.20.178 dev wlan0 lladdr 48:9d:24:c9:f8:79 ref 1 used 0/0/0 probes 6 REACHABLE
+10.191.20.11 dev wlan0 lladdr f4:32:3d:40:c6:18 ref 1 used 0/0/0 probes 6 REACHABLE
+10.191.20.31 dev wlan0 lladdr 84:18:26:bd:88:2d ref 1 used 0/0/0 probes 6 REACHABLE
+
+```
+
+`netini-arp linux` turns it into this:
+
+```
+[host]
+name = skynet-Kakao-1
+ip = 10.191.10.130
+mac = 0c:1c:20:69:d8:d8
+
+[host]
+name = skynet-GuangdongOppoMobileTelecommunications-1
+ip = 10.191.10.65
+mac = 08:4a:cf:e6:d0:08
+
+[host]
+name = skynet-LgElectronics-1
+ip = 10.191.10.28
+mac = e8:5b:5b:b1:5d:db
+
+[host]
+name = skynet-BauschAndLomb-1
+ip = 10.191.10.85
+mac = 08:00:33:00:b7:2e
+
+[host]
+name = skynet-IntelOrate-1
+ip = 10.191.11.239
+mac = 5c:d2:e4:1b:1e:ee
+
+[host]
+name = skynet-AsiaVitalMponents-1
+ip = 10.191.11.105
+mac = 74:6e:e4:71:05:25
+
+[host]
+name = skynet-ShenzhenGongjinElectronics-1
+ip = 10.191.20.36
+mac = 68:d4:82:66:29:7b
+
+[host]
+name = skynet-SungrowPowerSupply-1
+ip = 10.191.20.247
+mac = ac:19:9f:03:6c:f2
+
+[host]
+name = skynet-DualEnterprises-1
+ip = 10.191.20.113
+mac = 00:c0:a3:91:9d:e2
+
+[host]
+name = skynet-BlackberryRts-1
+ip = 10.191.20.178
+mac = 48:9d:24:c9:f8:79
+
+[host]
+name = skynet-SichuanTianyiKangheMmunications-1
+ip = 10.191.20.11
+mac = f4:32:3d:40:c6:18
+
+[host]
+name = skynet-Osram-1
+ip = 10.191.20.31
+mac = 84:18:26:bd:88:2d
+```
+
+`netini-dot` turns it into this:
+
+```
+graph G {
+	{ "skynet-Kakao-1" [shape=rectangle; label="skynet-Kakao-1\nip 10.191.10.130\nmac 0c:1c:20:69:d8:d8\n"] }
+	{ "skynet-GuangdongOppoMobileTelecommunications-1" [shape=rectangle; label="skynet-GuangdongOppoMobileTelecommunications-1\nip 10.191.10.65\nmac 08:4a:cf:e6:d0:08\n"] }
+	{ "skynet-LgElectronics-1" [shape=rectangle; label="skynet-LgElectronics-1\nip 10.191.10.28\nmac e8:5b:5b:b1:5d:db\n"] }
+	{ "skynet-BauschAndLomb-1" [shape=rectangle; label="skynet-BauschAndLomb-1\nip 10.191.10.85\nmac 08:00:33:00:b7:2e\n"] }
+	{ "skynet-IntelOrate-1" [shape=rectangle; label="skynet-IntelOrate-1\nip 10.191.11.239\nmac 5c:d2:e4:1b:1e:ee\n"] }
+	{ "skynet-AsiaVitalMponents-1" [shape=rectangle; label="skynet-AsiaVitalMponents-1\nip 10.191.11.105\nmac 74:6e:e4:71:05:25\n"] }
+	{ "skynet-ShenzhenGongjinElectronics-1" [shape=rectangle; label="skynet-ShenzhenGongjinElectronics-1\nip 10.191.20.36\nmac 68:d4:82:66:29:7b\n"] }
+	{ "skynet-SungrowPowerSupply-1" [shape=rectangle; label="skynet-SungrowPowerSupply-1\nip 10.191.20.247\nmac ac:19:9f:03:6c:f2\n"] }
+	{ "skynet-DualEnterprises-1" [shape=rectangle; label="skynet-DualEnterprises-1\nip 10.191.20.113\nmac 00:c0:a3:91:9d:e2\n"] }
+	{ "skynet-BlackberryRts-1" [shape=rectangle; label="skynet-BlackberryRts-1\nip 10.191.20.178\nmac 48:9d:24:c9:f8:79\n"] }
+	{ "skynet-SichuanTianyiKangheMmunications-1" [shape=rectangle; label="skynet-SichuanTianyiKangheMmunications-1\nip 10.191.20.11\nmac f4:32:3d:40:c6:18\n"] }
+	{ "skynet-Osram-1" [shape=rectangle; label="skynet-Osram-1\nip 10.191.20.31\nmac 84:18:26:bd:88:2d\n"] }
+}
+```
+
+Finally plotted by [graphviz].
+
+Note that extra data can be added at each step, and `netini-merge` lets one 
+have manual entries that override the autogenerated ones.

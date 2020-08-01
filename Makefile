@@ -1,13 +1,13 @@
-NAME = netgraph
+NAME = netini
 VERSION = 0.0
 
 SRC = src/mem.c src/ip.c src/log.c src/compat/strchomp.c src/compat/strlcpy.c \
-  src/compat/strip.c src/conf.c src/array.c src/mac.c src/netgraph.c
+  src/compat/strip.c src/conf.c src/array.c src/mac.c src/netini.c
 
-HDR = src/ip.h src/conf.h src/netgraph.h src/array.h src/test.h src/compat.h \
+HDR = src/ip.h src/conf.h src/netini.h src/array.h src/test.h src/compat.h \
   src/mem.h src/mac.h src/log.h
 
-BIN = netgraph-dot
+BIN = netini-dot
 
 OBJ = ${SRC:.c=.o}
 
@@ -37,7 +37,7 @@ clean:
 
 install:
 	mkdir -p ${DESTDIR}${PREFIX}/bin
-	cp -rf ${BIN} ${DESTDIR}${PREFIX}/bin
+	cp -rf bin/* ${BIN} ${DESTDIR}${PREFIX}/bin
 	mkdir -p ${DESTDIR}${MANPREFIX}/man1
 	cp -rf doc/*.1 ${DESTDIR}${MANPREFIX}/man1
 
