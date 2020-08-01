@@ -51,25 +51,39 @@ draw_node(char *s, struct conf_section *section, char const *style)
 	fprintf(stdout, "\"] }\n");
 }
 
+void
+add_conf(struct array *hosts, struct array *nets, char *path,
+	struct mem_pool *pool)
+{
+	size_t ln = 0;
+	int err;
+
+	err = netini_add_conf(nets, hosts, path, &ln, pool);
+	if (err < 0)
+		die("msg=%s path=%s line=%d",
+		  netini_strerror(err), path, ln);
+
+}
+
 int
 main(int argc, char **argv)
 {
 	struct mem_pool pool = {0};
 	struct array hosts = {0}, nets = {0};
 	size_t i1, i2, i3;
-	int err;
+
+	arg0 = *argv++;
+	argc--;
 
 	if (array_init(&hosts, sizeof (struct netini_host), &pool) < 0
 	 || array_init(&nets, sizeof (struct netini_net), &pool) < 0)
 		die("msg=%s", "initializing arrayays");
 
-	for (arg0 = *argv++; *argv != NULL; argv++, argc--) {
-		size_t ln = 0;
-
-		err = netini_add_conf(&nets, &hosts, *argv, &ln, &pool);
-		if (err < 0)
-			die("msg=%s path=%s line=%d",
-			  netini_strerror(err), *argv, ln);
+	if (argc == 0) {
+		add_conf(&nets, &hosts, "/dev/stdin", &pool);
+	} else for (; *argv != NULL; argv++, argc--) {
+		char *path = (strcmp(*argv, "-") == 0) ? "/dev/stdin" : *argv;
+		add_conf(&nets, &hosts, path, &pool);
 	}
 
 	draw_beg();
