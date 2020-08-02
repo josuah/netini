@@ -1,0 +1,4 @@
+#!/bin/sh -e
+
+find "$PWD" -type f -exec sed -n '/```ini/,/```/ { /```/ d; p; }' {} + \
+| netini-dot | twopi | sfdp -Goverlap=scale -Tpng >network.png
