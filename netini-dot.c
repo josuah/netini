@@ -13,7 +13,6 @@ static char const *style_node_net = "color=red shape=ellipse";
 static char const *style_node_host = "shape=rectangle";
 static char const *style_edge_l1l2 = "color=grey";
 static char const *style_edge_l2l3 = "color=red";
-static char const *style_edge_ipsec = "color=grey,style=dashed";
 
 void
 draw_beg(void)
@@ -147,7 +146,7 @@ main(int argc, char **argv)
 			i3 = i2;
 			while ((h2 = conf_next_value(section, &i3, "host")))
 				if (strcmp(h1, h2) != 0)
-					draw_edge(h1, h2, style_edge_ipsec);
+					draw_edge(h1, h2, style_edge_l2l3);
 		}
 	}
 
