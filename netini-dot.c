@@ -146,7 +146,7 @@ main(int argc, char **argv)
 			i3 = i2;
 			while ((h2 = conf_next_value(section, &i3, "host")))
 				if (strcmp(h1, h2) != 0)
-					draw_edge(h1, h2, style_edge_l2l3);
+					draw_edge(h1, h2, style_edge_l1l2);
 		}
 	}
 
