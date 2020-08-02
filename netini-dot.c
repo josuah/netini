@@ -13,6 +13,7 @@ static char const *style_node_net = "color=red shape=ellipse";
 static char const *style_node_host = "shape=rectangle";
 static char const *style_edge_l1l2 = "color=grey";
 static char const *style_edge_l2l3 = "color=red";
+static char const *style_edge_ipsec = "color=grey,style=dashed";
 
 void
 draw_beg(void)
@@ -38,7 +39,7 @@ draw_node(char *s, struct conf_section *section, char const *style)
 	struct conf_variable *var;
 	size_t i;
 
-	fprintf(stdout, "\t{ \"%s\" [%s; label=\"%s\\n", s, style, s);
+	fprintf(stdout, "\t{ \"%s\" [%s,label=\"%s\\n", s, style, s);
 
 	i = 0;
 	while ((var = conf_next_variable(section, &i, NULL))) {
@@ -52,61 +53,62 @@ draw_node(char *s, struct conf_section *section, char const *style)
 }
 
 void
-add_conf(struct array *hosts, struct array *nets, char *path,
-	struct mem_pool *pool)
+add_conf_to_graph(struct netini_graph *graph, char *path, struct mem_pool *pool)
 {
 	size_t ln = 0;
 	int err;
 
-	err = netini_add_conf(nets, hosts, path, &ln, pool);
+	err = netini_add_conf(graph, path, &ln, pool);
 	if (err < 0)
 		die("msg=%s path=%s line=%d",
 		  netini_strerror(err), path, ln);
-
 }
 
 int
 main(int argc, char **argv)
 {
 	struct mem_pool pool = {0};
-	struct array hosts = {0}, nets = {0};
+	struct netini_graph graph = {0};
 	size_t i1, i2, i3;
+	int err;
 
 	arg0 = *argv++;
 	argc--;
 
-	if (array_init(&hosts, sizeof (struct netini_host), &pool) < 0
-	 || array_init(&nets, sizeof (struct netini_net), &pool) < 0)
-		die("msg=%s", "initializing arrayays");
+	err = netini_init_graph(&graph, &pool);
+	if (err < 0)
+		die("msg=%s", "initializing data");
 
 	if (argc == 0) {
-		add_conf(&nets, &hosts, "/dev/stdin", &pool);
+		add_conf_to_graph(&graph, "/dev/stdin", &pool);
 	} else for (; *argv != NULL; argv++, argc--) {
 		char *path = (strcmp(*argv, "-") == 0) ? "/dev/stdin" : *argv;
-		add_conf(&nets, &hosts, path, &pool);
+		add_conf_to_graph(&graph, path, &pool);
 	}
 
 	draw_beg();
 
-	for (i1 = 0; i1 < array_length(&nets); i1++) {
-		struct netini_net *net = array_i(&nets, i1);
+	/* graph nodes */
+
+	for (i1 = 0; i1 < array_length(&graph.nets); i1++) {
+		struct netini_net *net = array_i(&graph.nets, i1);
 
 		draw_node(net->name, net->section, style_node_net);
 	}
 
-	for (i1 = 0; i1 < array_length(&hosts); i1++) {
-		struct netini_host *host = array_i(&hosts, i1);
+	for (i1 = 0; i1 < array_length(&graph.hosts); i1++) {
+		struct netini_host *host = array_i(&graph.hosts, i1);
 
 		draw_node(host->name, host->section, style_node_host);
 	}
 
-	/* layer 3 topology */
+	/* graph links: layer 3 topology */
 
-	for (i1 = 0; i1 < array_length(&nets); i1++) {
-		struct netini_net *net = array_i(&nets, i1);
+	for (i1 = 0; i1 < array_length(&graph.nets); i1++) {
+		struct netini_net *net = array_i(&graph.nets, i1);
 
-		for (i2 = 0; i2 < array_length(&hosts); i2++) {
-			struct netini_host *host = array_i(&hosts, i2);
+		for (i2 = 0; i2 < array_length(&graph.hosts); i2++) {
+			struct netini_host *host = array_i(&graph.hosts, i2);
 
 			for (i3 = 0; i3 < array_length(&host->ips); i3++) {
 				uint8_t *ip = array_i(&host->ips, i3);
@@ -117,18 +119,35 @@ main(int argc, char **argv)
 		}
 	}
 
-	/* layer 2 topology */
+	/* graph links: layer 2 topology */
 
-	for (i1 = 0; i1 < array_length(&hosts); i1++) {
-		struct netini_host *this = array_i(&hosts, i1);
+	for (i1 = 0; i1 < array_length(&graph.hosts); i1++) {
+		struct netini_host *this = array_i(&graph.hosts, i1);
 
 		for (i2 = 0; i2 < array_length(&this->links); i2++) {
 			struct netini_link *link = array_i(&this->links, i2);
 			struct netini_host *other;
 
 			i3 = 0;
-			while ((other = netini_next_linked(&hosts, link, &i3)))
+			while ((other = netini_next_linked(&graph.hosts, link, &i3)))
 				draw_edge(this->name, other->name, style_edge_l1l2);
+		}
+	}
+
+	/* graph links: IPsec VPNs */
+
+	for (i1 = 0; i1 < array_length(&graph.ipsecs); i1++) {
+		struct conf_section *section = array_i(&graph.ipsecs, i1);
+		char *h1;
+
+		i2 = 0;
+		while ((h1 = conf_next_value(section, &i2, "host"))) {
+			char *h2;
+
+			i3 = i2;
+			while ((h2 = conf_next_value(section, &i3, "host")))
+				if (strcmp(h1, h2) != 0)
+					draw_edge(h1, h2, style_edge_ipsec);
 		}
 	}
 

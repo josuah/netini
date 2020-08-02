@@ -1,19 +1,19 @@
-#ifndef NETGRAPH_H
-#define NETGRAPH_H
+#ifndef NETINI_H
+#define NETINI_H
 
 #include <stdint.h>
 
 #include "conf.h"
 
 enum netini_errno {
-	NETGRAPH_ERR_SYSTEM = CONF_ERR_ENUM_END,
-	NETGRAPH_ERR_BAD_MASK_FORMAT,
-	NETGRAPH_ERR_BAD_ADDR_FORMAT,
-	NETGRAPH_ERR_BAD_MAC_FORMAT,
-	NETGRAPH_ERR_TRAILING_VALUE,
-	NETGRAPH_ERR_MISSING_NAME_VARIABLE,
-	NETGRAPH_ERR_NET_WITHOUT_IP,
-	NETGRAPH_ERR_MULTIPLE_NET_IP,
+	NETINI_ERR_SYSTEM = CONF_ERR_ENUM_END,
+	NETINI_ERR_BAD_MASK_FORMAT,
+	NETINI_ERR_BAD_ADDR_FORMAT,
+	NETINI_ERR_BAD_MAC_FORMAT,
+	NETINI_ERR_TRAILING_VALUE,
+	NETINI_ERR_MISSING_NAME_VARIABLE,
+	NETINI_ERR_NET_WITHOUT_IP,
+	NETINI_ERR_MULTIPLE_NET_IP,
 };
 
 struct netini_net {
@@ -31,10 +31,17 @@ struct netini_host {
 	struct conf_section *section;
 };
 
+struct netini_graph {
+	int init;
+	struct array nets; /* struct netini_host */
+	struct array hosts; /* struct netini_host */
+	struct array ipsecs; /* struct conf_section */
+};
+
 enum netini_type {
-	NETGRAPH_T_IP,
-	NETGRAPH_T_MAC,
-	NETGRAPH_T_NAME,
+	NETINI_T_IP,
+	NETINI_T_MAC,
+	NETINI_T_NAME,
 };
 
 struct netini_link {
@@ -48,7 +55,8 @@ struct netini_link {
 
 /** src/netini.c **/
 char const * netini_strerror(int i);
-int netini_add_conf(struct array *nets, struct array *hosts, char *path, size_t *ln, struct mem_pool *pool);
+int netini_add_conf(struct netini_graph *graph, char *path, size_t *ln, struct mem_pool *pool);
+int netini_init_graph(struct netini_graph *graph, struct mem_pool *pool);
 struct netini_host * netini_next_linked(struct array *hosts, struct netini_link *link, size_t *i);
 
 #endif
