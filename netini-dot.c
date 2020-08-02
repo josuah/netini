@@ -11,7 +11,7 @@
 
 static char const *style_node_net = "color=red shape=ellipse";
 static char const *style_node_host = "shape=rectangle";
-static char const *style_edge_l1l2 = "color=grey";
+static char const *style_edge_l1l2 = "color=grey,weight=2";
 static char const *style_edge_l2l3 = "color=red";
 
 void
