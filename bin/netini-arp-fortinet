@@ -1,0 +1,5 @@
+#!/usr/bin/awk -f
+
+$3 ~ /:/ {
+	print toupper($3), $1, $4
+}
