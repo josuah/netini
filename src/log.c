@@ -1,21 +1,41 @@
 #include "log.h"
 
 /*
- * Log to stderr with extra data (errno, program name, ...) added.
+ * Log to stderr in the logfmt format through a foolproof API.
  * https://www.brandur.org/logfmt
  */
 
 #include <assert.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-char *arg0 = NULL;
+static void
+log_errno(int err)
+{
+	if (err == 0)
+		return;
+	fputs(" err=\"", stderr);
+	fputs(strerror(errno), stderr);
+	fputc('"', stderr);
+}
+
+char *
+log_num(char *buf, uintmax_t i)
+{
+	char *s = buf;
+
+	for (; i > 0; i /= 10)
+		*s++ = '0' + i % 10;
+	*s = '\0';
+	return buf;
+}
 
 static void
-log_string(char *s)
+log_string(char const *s)
 {
 	if (s[strcspn(s, " \t")] == '\0') {
 		fputs(s, stderr);
@@ -27,66 +47,66 @@ log_string(char *s)
 }
 
 void
-log_vprintf(char const *level, char const *fmt, va_list va)
+log_vprintf(char const *fmt, va_list va)
 {
-	int old_errno = errno;
+	int first = 1;
 
-	if (arg0 != NULL)
-		fprintf(stderr, "prog=%s ", arg0);
-	fprintf(stderr, "level=%s ", level);
+	do {
+		size_t len = strlen(fmt);
 
-	for (; *fmt != '\0'; fmt++) {
-		if (*fmt == '%') {
-			switch (*++fmt) {
-			case 'd':
-				vfprintf(stderr, "%d", va);
-				break;
-			case 's':
-				log_string(va_arg(va, char *));
-				break;
-			default:
-				assert(!"unknown char after percent");
-			}
-		} else {
-			fputc(*fmt, stderr);
+		assert(len > 0);
+
+		if (!first)
+			fputc(' ', stderr);
+		first = 0;
+
+		fputs(fmt, stderr);
+		if (fmt[len - 1] == '=') {
+			char const *arg = va_arg(va, char *);
+			log_string((arg == NULL) ? "(null)" : arg);
 		}
-	}
-	if (old_errno)
-		fprintf(stderr, " err=\"%s\"", strerror(old_errno));
+	} while ((fmt = va_arg(va, char *)) != NULL);
+}
+
+void
+log_die(char const *fmt, ...)
+{
+	va_list va;
+
+	fputs("error fatal ", stderr);
+	va_start(va, fmt);
+	log_vprintf(fmt, va);
+	log_errno(errno);
+	fputc('\n', stderr);
+	exit(1);
+}
+
+void
+log_warn(char const *fmt, ...)
+{
+	va_list va;
+
+	va_start(va, fmt);
+	fputs("error ", stderr);
+	log_vprintf(fmt, va);
+	log_errno(errno);
 	fputc('\n', stderr);
 	fflush(stderr);
 }
 
 void
-die(char const *fmt, ...)
+log_info(char const *fmt, ...)
 {
 	va_list va;
 
 	va_start(va, fmt);
-	log_vprintf("error", fmt, va);
-	exit(1);
+	log_vprintf(fmt, va);
+	fputc('\n', stderr);
+	fflush(stderr);
 }
 
 void
-warn(char const *fmt, ...)
-{
-	va_list va;
-
-	va_start(va, fmt);
-	log_vprintf("warn", fmt, va);
-}
-
-void
-info(char const *fmt, ...)
-{
-	va_list va;
-
-	va_start(va, fmt);
-	log_vprintf("info", fmt, va);
-}
-
-void
-debug(char const *fmt, ...)
+log_debug(char const *fmt, ...)
 {
 	static int debug_is_on = -1;
 	va_list va;
@@ -94,7 +114,11 @@ debug(char const *fmt, ...)
 	if (debug_is_on < 0)
 		debug_is_on = (getenv("DEBUG") != NULL);
 	if (debug_is_on) {
+		fputs("debug ", stderr);
 		va_start(va, fmt);
-		log_vprintf("debug", fmt, va);
+		log_vprintf(fmt, va);
+		log_errno(errno);
+		fputc('\n', stderr);
+		fflush(stderr);
 	}
 }

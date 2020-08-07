@@ -13,6 +13,7 @@ static char const *style_node_net = "color=red shape=ellipse";
 static char const *style_node_host = "shape=rectangle";
 static char const *style_edge_l1l2 = "color=grey,weight=2";
 static char const *style_edge_l2l3 = "color=red";
+static char *arg0;
 
 void
 draw_beg(void)
@@ -59,8 +60,7 @@ add_conf_to_graph(struct netini_graph *graph, char *path, struct mem_pool *pool)
 
 	err = netini_add_conf(graph, path, &ln, pool);
 	if (err < 0)
-		die("msg=%s path=%s line=%d",
-		  netini_strerror(err), path, ln);
+		die("msg=",netini_strerror(err), "path=",path, "line=",fmt(ln));
 }
 
 int
@@ -76,7 +76,7 @@ main(int argc, char **argv)
 
 	err = netini_init_graph(&graph, &pool);
 	if (err < 0)
-		die("msg=%s", "initializing data");
+		die("msg=","initializing data");
 
 	if (argc == 0) {
 		add_conf_to_graph(&graph, "/dev/stdin", &pool);

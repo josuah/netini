@@ -38,7 +38,7 @@ conf_strerror(int i)
 	case CONF_ERR_SYSTEM:
 		return "system error";
 	case CONF_ERR_NUL_BYTE:
-		return "'\\0' byte in configuration";
+		return "nul byte in configuration";
 	case CONF_ERR_SECTION_NAME_TOO_LONG:
 		return "section name is too long for this library";
 	case CONF_ERR_MISSING_CLOSING_BRACKET:
