@@ -45,3 +45,9 @@ dist: clean
 	mkdir -p ${NAME}-${VERSION}
 	cp -r README.md Makefile *.c bin doc src ${NAME}-${VERSION}
 	tar -cf - ${NAME}-${VERSION} | gzip -c >${NAME}-${VERSION}.tar.gz
+
+deploy:
+	notwiki-doc html doc .
+	notwiki-doc gph doc .
+	notwiki-mandoc html html doc .
+	notwiki-mandoc gph utf8 doc .
