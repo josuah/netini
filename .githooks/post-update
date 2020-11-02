@@ -1,3 +1,2 @@
 #!/bin/sh -eu
-export VHOST=netini.z0.is
 exec deploy /var/www/htdocs/z0is/netini

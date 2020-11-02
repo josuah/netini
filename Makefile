@@ -11,6 +11,8 @@ BIN = netini-dot
 
 OBJ = ${SRC:.c=.o}
 
+MAN1 = ${BIN:=.1}
+
 LIB =
 
 PREFIX = /usr/local
@@ -39,11 +41,11 @@ install:
 	mkdir -p ${DESTDIR}${PREFIX}/bin
 	cp -rf bin/* ${BIN} ${DESTDIR}${PREFIX}/bin
 	mkdir -p ${DESTDIR}${MANPREFIX}/man1
-	cp -rf doc/*.1 ${DESTDIR}${MANPREFIX}/man1
+	cp -rf ${MAN1} ${DESTDIR}${MANPREFIX}/man1
 
 dist: clean
 	mkdir -p ${NAME}-${VERSION}
-	cp -r README.md Makefile *.c bin doc src ${NAME}-${VERSION}
+	cp -r README.md Makefile *.c bin ${MAN1} src ${NAME}-${VERSION}
 	tar -cf - ${NAME}-${VERSION} | gzip -c >${NAME}-${VERSION}.tar.gz
 
 deploy:
