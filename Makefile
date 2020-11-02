@@ -47,7 +47,5 @@ dist: clean
 	tar -cf - ${NAME}-${VERSION} | gzip -c >${NAME}-${VERSION}.tar.gz
 
 deploy:
-	notwiki-doc html doc .
-	notwiki-doc gph doc .
-	notwiki-mandoc html html doc .
-	notwiki-mandoc gph utf8 doc .
+	notwiki-html .site
+	notwiki-gph .site
