@@ -1,30 +1,19 @@
 NAME = netini
 VERSION = 0.4
-
-SRC = src/mem.c src/ip.c src/log.c src/compat/strchomp.c src/compat/strlcpy.c \
-  src/compat/strip.c src/conf.c src/array.c src/netini.c src/mac.c
-
-HDR = src/ip.h src/conf.h src/array.h src/test.h src/compat.h src/mem.h \
-  src/netini.h src/mac.h src/log.h
-
-BIN = netini-dot
-
-OBJ = ${SRC:.c=.o}
-
-MAN1 = ${BIN:=.1}
-
-LIB =
-
 PREFIX = /usr/local
 MANPREFIX = ${PREFIX}/man
 
-W = -Wall -Wextra -std=c99 --pedantic
-I = -I./src
-L =
-D = -D_POSIX_C_SOURCE=200811L -DVERSION='"${VERSION}"'
-CFLAGS = $I $D $W -g
-LDFLAGS = $L -static
+CFLAGS = -g -Wall -Wextra \
+   -std=c99 --pedantic -D_POSIX_C_SOURCE=200811L -DVERSION='"${VERSION}"'
+LDFLAGS = -static
 
+SRC = mem.c ip.c log.c strchomp.c strlcpy.c strip.c conf.c array.c netini.c \
+  mac.c
+HDR = ip.h conf.h array.h test.h compat.h mem.h netini.h mac.h log.h
+BIN = netini-dot
+OBJ = ${SRC:.c=.o}
+MAN1 = ${BIN:=.1}
+LIB =
 all: ${BIN}
 
 .c.o:
