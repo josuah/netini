@@ -30,12 +30,12 @@ install:
 	cp -rf ${MAN1} ${DESTDIR}${MANPREFIX}/man1
 
 dist:
-	git archive v${VERSION} --prefix=notwiki-${VERSION}/ \
-	  | gzip >notwiki-${VERSION}.tgz
+	git archive v${VERSION} --prefix=netini-${VERSION}/ \
+	  | gzip >netini-${VERSION}.tgz
 
 site: dist
-	notmarkdown-html README.md | cat - .site/head.html >index.html
-	notmarkdown-gph README.md | cat - .site/head.gph >index.gph
+	notmarkdown README.md | notmarkdown-html | cat .site/head.html -> index.html
+	notmarkdown README.md | notmarkdown-gph | cat .site/head.gph -> index.gph
 	sed -i "s/VERSION/${VERSION}/g" index.*
 	cp .site/style.css .
 
