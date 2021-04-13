@@ -23,20 +23,22 @@ ${OBJ} ${BIN:=.o}: Makefile ${HDR}
 ${BIN}: ${OBJ} ${BIN:=.o}
 	${CC} ${LDFLAGS} -o $@ $@.o ${OBJ} ${LIB}
 
-clean:
-	rm -rf *.o */*.o ${BIN} ${NAME}-${VERSION} *.gz
-
 install:
 	mkdir -p ${DESTDIR}${PREFIX}/bin
 	cp -rf bin/* ${BIN} ${DESTDIR}${PREFIX}/bin
 	mkdir -p ${DESTDIR}${MANPREFIX}/man1
 	cp -rf ${MAN1} ${DESTDIR}${MANPREFIX}/man1
 
-dist: clean
-	mkdir -p ${NAME}-${VERSION}
-	cp -r README.md Makefile *.c bin ${MAN1} src ${NAME}-${VERSION}
-	tar -cf - ${NAME}-${VERSION} | gzip -c >${NAME}-${VERSION}.tar.gz
+dist:
+	git archive v${VERSION} --prefix=notwiki-${VERSION}/ \
+	  | gzip >notwiki-${VERSION}.tgz
 
-deploy:
-	notwiki-html .site
-	notwiki-gph .site
+site: dist
+	notmarkdown-html README.md | cat - .site/head.html >index.html
+	notmarkdown-gph README.md | cat - .site/head.gph >index.gph
+	sed -i "s/VERSION/${VERSION}/g" index.*
+	cp .site/style.css .
+
+clean:
+	rm -rf *.o */*.o ${BIN} ${NAME}-${VERSION} *.tgz
+
