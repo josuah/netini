@@ -1,2 +1,0 @@
-#!/bin/sh -eu
-exec deploy /var/www/htdocs/z0is/netini

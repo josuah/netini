@@ -34,10 +34,9 @@ dist:
 	  | gzip >netini-${VERSION}.tgz
 
 site: dist
-	notmarkdown README.md | notmarkdown-html | cat .site/head.html -> index.html
-	notmarkdown README.md | notmarkdown-gph | cat .site/head.gph -> index.gph
+	notmarkdown README.md | notmarkdown-html | cat .head.html -> index.html
+	notmarkdown README.md | notmarkdown-gph | cat .head.gph -> index.gph
 	sed -i "s/VERSION/${VERSION}/g" index.*
-	cp .site/style.css .
 
 clean:
 	rm -rf *.o */*.o ${BIN} ${NAME}-${VERSION} *.tgz
