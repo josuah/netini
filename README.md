@@ -18,7 +18,7 @@ and switches.
 
 How to use it?
 --------------
-The [`netini-dot(1)`](/man/netini-dot.1/) tool generating the plots is reading a
+The [netini-dot(1)](/netini/man/) tool generating the plots is reading a
 trivial .ini format from all files passed as argument:
 
 Example for a network named `sky`:

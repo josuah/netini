@@ -1,0 +1,30 @@
+NETINI-DOT(1)               General Commands Manual              NETINI-DOT(1)
+
+netini
+     netini-dot – turn config.ini files into a dot formatted plot
+
+SYNOPSIS
+     netini-dot [-options] file ...
+
+DESCRIPTION
+     The netini-dot utility
+
+ENVIRONMENT
+FILES
+EXIT STATUS
+     The netini-dot utility exits 0 on success, and >0 if an error occurs.
+
+EXAMPLES
+DIAGNOSTICS
+SEE ALSO
+     foobar(1)
+
+STANDARDS
+HISTORY
+AUTHORS
+     <author-name> <<author-email>>
+
+CAVEATS
+BUGS
+
+OpenBSD 6.9                     August 1, 2020                     OpenBSD 6.9
